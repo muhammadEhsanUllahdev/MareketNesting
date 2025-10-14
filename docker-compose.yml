@@ -1,0 +1,49 @@
+
+
+# version: "3.8"
+
+# services:
+#   # Main Application
+#   app:
+#     build: .
+#     container_name: cebleu
+#     ports:
+#       - "5000:5000"
+#     environment:
+#       NODE_ENV: production
+#       # 🔹 Use your external Postgres instance
+#       DATABASE_URL: postgresql://appuser:Str0ng%40P4ssw0rd%21@46.202.134.130:25432/ecommerce?sslmode=disable
+#       SESSION_SECRET: pakistanzindabadhamfklassak
+#       SMTP_HOST: mail.devnaza.com
+#       SMTP_PORT: 587
+#       SMTP_USER: test@devnaza.com
+#       SMTP_PASS: "@AsDftest1"
+#     volumes:
+#       - ./uploads:/app/uploads
+#     restart: unless-stopped
+version: "3.8"
+
+services:
+  cebleu:
+    container_name: cebleu
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
+        VITE_APP_NAME: ${VITE_APP_NAME}
+        VITE_DEFAULT_LANGUAGE: ${VITE_DEFAULT_LANGUAGE}
+        VITE_SUPPORTED_LANGUAGES: ${VITE_SUPPORTED_LANGUAGES}
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:5103:5000"
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health || curl -fsS http://localhost:5000 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

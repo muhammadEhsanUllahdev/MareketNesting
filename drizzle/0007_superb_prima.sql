@@ -1,0 +1,1 @@
+ALTER TABLE "packages" ALTER COLUMN "is_active" SET DATA TYPE boolean;

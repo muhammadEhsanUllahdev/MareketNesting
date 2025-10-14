@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarketHub - Multi-Vendor Multilingual Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',
+                        secondary: '#7C3AED',
+                        success: '#059669',
+                        warning: '#D97706',
+                        error: '#DC2626'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation Header -->
+    <!-- @COMPONENT: NavigationHeader [language switcher, user menu, cart] -->
+    <nav class="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-primary">MarketHub</h1>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-2xl mx-8">
+                    <div class="relative">
+                        <input type="text" 
+                               placeholder="Search products, vendors, categories..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               data-mock="true">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Navigation -->
+                <div class="flex items-center space-x-4">
+                    <!-- Language Switcher -->
+                    <div class="relative">
+                        <select class="bg-white border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="en">🇺🇸 EN</option>
+                            <option value="fr">🇫🇷 FR</option>
+                            <option value="ar">🇸🇦 AR</option>
+                        </select>
+                    </div>
+
+                    <!-- Cart -->
+                    <button class="relative p-2 text-gray-600 hover:text-primary transition-colors">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span class="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" data-mock="true">3</span>
+                    </button>
+
+                    <!-- User Menu -->
+                    <div class="relative">
+                        <button class="flex items-center space-x-2 text-gray-700 hover:text-primary transition-colors">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32" 
+                                 alt="User avatar" 
+                                 class="w-8 h-8 rounded-full"
+                                 data-mock="true">
+                            <span class="text-sm font-medium" data-mock="true">John Doe</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: NavigationHeader -->
+
+    <!-- Main Content Container -->
+    <div class="min-h-screen">
+        <!-- Hero Section -->
+        <!-- @COMPONENT: HeroSection [featured products carousel] -->
+        <section class="bg-gradient-to-r from-primary to-secondary text-white py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h1 class="text-4xl lg:text-6xl font-bold mb-6" data-mock="true">
+                            Global Marketplace for Everyone
+                        </h1>
+                        <p class="text-xl mb-8 text-blue-100" data-mock="true">
+                            Discover unique products from verified vendors worldwide. Shop in your language, pay in your currency.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <button class="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                                Start Shopping
+                            </button>
+                            <button class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary transition-colors">
+                                Become a Vendor
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <!-- Marketplace illustration featuring diverse products -->
+                        <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400" 
+                             alt="E-commerce marketplace illustration" 
+                             class="rounded-xl shadow-2xl"
+                             data-mock="true">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: HeroSection -->
+
+        <!-- Categories Section -->
+        <!-- @COMPONENT: CategoriesGrid [dynamic categories with translations] -->
+        <section class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4" data-mock="true">Shop by Category</h2>
+                    <p class="text-lg text-gray-600" data-mock="true">Explore our diverse range of products from trusted vendors</p>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    <!-- @MAP: categories.map(category => ( -->
+                    <div class="group cursor-pointer">
+                        <div class="bg-gray-100 rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
+                            <!-- Electronics category icon -->
+                            <div class="w-16 h-16 mx-auto mb-4 bg-primary bg-opacity-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-laptop text-2xl text-primary"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900" data-mock="true" data-bind="category.translations[lang].name">Electronics</h3>
+                            <p class="text-sm text-gray-500 mt-1" data-mock="true">1,234 products</p>
+                        </div>
+                    </div>
+
+                    <div class="group cursor-pointer">
+                        <div class="bg-gray-100 rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
+                            <!-- Fashion category -->
+                            <div class="w-16 h-16 mx-auto mb-4 bg-secondary bg-opacity-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-tshirt text-2xl text-secondary"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900" data-mock="true">Fashion</h3>
+                            <p class="text-sm text-gray-500 mt-1" data-mock="true">2,567 products</p>
+                        </div>
+                    </div>
+
+                    <div class="group cursor-pointer">
+                        <div class="bg-gray-100 rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
+                            <!-- Home & Garden category -->
+                            <div class="w-16 h-16 mx-auto mb-4 bg-success bg-opacity-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-home text-2xl text-success"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900" data-mock="true">Home & Garden</h3>
+                            <p class="text-sm text-gray-500 mt-1" data-mock="true">876 products</p>
+                        </div>
+                    </div>
+
+                    <div class="group cursor-pointer">
+                        <div class="bg-gray-100 rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
+                            <!-- Sports category -->
+                            <div class="w-16 h-16 mx-auto mb-4 bg-warning bg-opacity-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-futbol text-2xl text-warning"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900" data-mock="true">Sports</h3>
+                            <p class="text-sm text-gray-500 mt-1" data-mock="true">445 products</p>
+                        </div>
+                    </div>
+
+                    <div class="group cursor-pointer">
+                        <div class="bg-gray-100 rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
+                            <!-- Books category -->
+                            <div class="w-16 h-16 mx-auto mb-4 bg-error bg-opacity-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-book text-2xl text-error"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900" data-mock="true">Books</h3>
+                            <p class="text-sm text-gray-500 mt-1" data-mock="true">789 products</p>
+                        </div>
+                    </div>
+
+                    <div class="group cursor-pointer">
+                        <div class="bg-gray-100 rounded-xl p-6 text-center hover:shadow-lg transition-shadow">
+                            <!-- Health & Beauty category -->
+                            <div class="w-16 h-16 mx-auto mb-4 bg-pink-500 bg-opacity-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-heart text-2xl text-pink-500"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-900" data-mock="true">Health & Beauty</h3>
+                            <p class="text-sm text-gray-500 mt-1" data-mock="true">1,098 products</p>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: CategoriesGrid -->
+
+        <!-- Featured Products Section -->
+        <!-- @COMPONENT: FeaturedProducts [product grid with translations] -->
+        <section class="py-16 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center mb-12">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900 mb-2" data-mock="true">Featured Products</h2>
+                        <p class="text-gray-600" data-mock="true">Handpicked products from our best vendors</p>
+                    </div>
+                    <button class="text-primary font-semibold hover:text-primary-dark transition-colors">
+                        View All <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- @MAP: featuredProducts.map(product => ( -->
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden group">
+                        <!-- Premium wireless headphones with noise cancellation -->
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300" 
+                                 alt="Premium wireless headphones" 
+                                 class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                 data-mock="true">
+                            <div class="absolute top-3 left-3">
+                                <span class="bg-secondary text-white text-xs px-2 py-1 rounded-full font-medium">Featured</span>
+                            </div>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors">
+                                <i class="far fa-heart text-gray-600"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs text-gray-500" data-mock="true" data-bind="product.vendor.name">TechVendor</span>
+                                <div class="flex items-center">
+                                    <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                    <span class="text-xs text-gray-600 ml-1" data-mock="true">4.8</span>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2" data-mock="true" data-bind="product.translations[lang].name">
+                                Premium Wireless Headphones
+                            </h3>
+                            <p class="text-sm text-gray-600 mb-3 line-clamp-2" data-mock="true" data-bind="product.translations[lang].description">
+                                High-quality wireless headphones with active noise cancellation
+                            </p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-lg font-bold text-gray-900" data-mock="true" data-bind="product.price">$149.99</span>
+                                    <span class="text-sm text-gray-500 line-through" data-mock="true">$199.99</span>
+                                </div>
+                                <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden group">
+                        <!-- Ergonomic office chair for comfortable work -->
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300" 
+                                 alt="Ergonomic office chair" 
+                                 class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                 data-mock="true">
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors">
+                                <i class="far fa-heart text-gray-600"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs text-gray-500" data-mock="true">OfficeStore</span>
+                                <div class="flex items-center">
+                                    <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                    <span class="text-xs text-gray-600 ml-1" data-mock="true">4.6</span>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2" data-mock="true">
+                                Ergonomic Office Chair
+                            </h3>
+                            <p class="text-sm text-gray-600 mb-3 line-clamp-2" data-mock="true">
+                                Comfortable ergonomic chair with lumbar support and adjustable height
+                            </p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-lg font-bold text-gray-900" data-mock="true">$299.00</span>
+                                <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden group">
+                        <!-- Organic skincare set with natural ingredients -->
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1596755389378-c31d21fd1273?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300" 
+                                 alt="Organic skincare products" 
+                                 class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                 data-mock="true">
+                            <div class="absolute top-3 left-3">
+                                <span class="bg-success text-white text-xs px-2 py-1 rounded-full font-medium">Organic</span>
+                            </div>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors">
+                                <i class="far fa-heart text-gray-600"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs text-gray-500" data-mock="true">BeautyNaturals</span>
+                                <div class="flex items-center">
+                                    <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                    <span class="text-xs text-gray-600 ml-1" data-mock="true">4.9</span>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2" data-mock="true">
+                                Organic Skincare Set
+                            </h3>
+                            <p class="text-sm text-gray-600 mb-3 line-clamp-2" data-mock="true">
+                                Complete skincare routine with natural and organic ingredients
+                            </p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-lg font-bold text-gray-900" data-mock="true">$89.99</span>
+                                <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden group">
+                        <!-- Vintage leather backpack for travel and work -->
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300" 
+                                 alt="Vintage leather backpack" 
+                                 class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                 data-mock="true">
+                            <div class="absolute top-3 left-3">
+                                <span class="bg-warning text-white text-xs px-2 py-1 rounded-full font-medium">Limited</span>
+                            </div>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-heart text-red-500"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs text-gray-500" data-mock="true">LeatherCraft</span>
+                                <div class="flex items-center">
+                                    <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                    <span class="text-xs text-gray-600 ml-1" data-mock="true">4.7</span>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2" data-mock="true">
+                                Vintage Leather Backpack
+                            </h3>
+                            <p class="text-sm text-gray-600 mb-3 line-clamp-2" data-mock="true">
+                                Handcrafted leather backpack perfect for travel and daily use
+                            </p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-lg font-bold text-gray-900" data-mock="true">$179.00</span>
+                                <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: FeaturedProducts -->
+
+        <!-- Vendor Dashboard Preview Section -->
+        <!-- @COMPONENT: VendorDashboardPreview [vendor analytics and product management] -->
+        <section class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4" data-mock="true">Powerful Vendor Dashboard</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto" data-mock="true">
+                        Manage your products, track sales, and grow your business with our comprehensive vendor tools
+                    </p>
+                </div>
+
+                <div class="bg-gray-50 rounded-2xl p-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Stats Cards -->
+                        <div class="lg:col-span-2">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div class="bg-white rounded-xl p-6 shadow-sm">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm text-gray-600 mb-1" data-mock="true">Total Sales</p>
+                                            <p class="text-2xl font-bold text-gray-900" data-mock="true">$12,847</p>
+                                            <p class="text-sm text-success">
+                                                <i class="fas fa-arrow-up mr-1"></i>
+                                                <span data-mock="true">+15.3%</span>
+                                            </p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-primary bg-opacity-10 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-dollar-sign text-primary"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-xl p-6 shadow-sm">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm text-gray-600 mb-1" data-mock="true">Total Orders</p>
+                                            <p class="text-2xl font-bold text-gray-900" data-mock="true">284</p>
+                                            <p class="text-sm text-success">
+                                                <i class="fas fa-arrow-up mr-1"></i>
+                                                <span data-mock="true">+8.2%</span>
+                                            </p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-secondary bg-opacity-10 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-shopping-bag text-secondary"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-xl p-6 shadow-sm">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm text-gray-600 mb-1" data-mock="true">Products</p>
+                                            <p class="text-2xl font-bold text-gray-900" data-mock="true">47</p>
+                                            <p class="text-sm text-warning">
+                                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                                <span data-mock="true">5 pending</span>
+                                            </p>
+                                        </div>
+                                        <div class="w-12 h-12 bg-success bg-opacity-10 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-box text-success"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="bg-white rounded-xl p-6 shadow-sm">
+                                <h3 class="font-semibold text-gray-900 mb-4" data-mock="true">Quick Actions</h3>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <button class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-primary hover:bg-primary hover:bg-opacity-5 transition-colors">
+                                        <i class="fas fa-plus text-primary text-xl mb-2"></i>
+                                        <span class="text-sm font-medium text-gray-700" data-mock="true">Add Product</span>
+                                    </button>
+                                    <button class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-primary hover:bg-primary hover:bg-opacity-5 transition-colors">
+                                        <i class="fas fa-chart-line text-secondary text-xl mb-2"></i>
+                                        <span class="text-sm font-medium text-gray-700" data-mock="true">Analytics</span>
+                                    </button>
+                                    <button class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-primary hover:bg-primary hover:bg-opacity-5 transition-colors">
+                                        <i class="fas fa-truck text-success text-xl mb-2"></i>
+                                        <span class="text-sm font-medium text-gray-700" data-mock="true">Orders</span>
+                                    </button>
+                                    <button class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:border-primary hover:bg-primary hover:bg-opacity-5 transition-colors">
+                                        <i class="fas fa-cog text-warning text-xl mb-2"></i>
+                                        <span class="text-sm font-medium text-gray-700" data-mock="true">Settings</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activities -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h3 class="font-semibold text-gray-900 mb-4" data-mock="true">Recent Activities</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-8 h-8 bg-success bg-opacity-10 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-check text-success text-sm"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-gray-900" data-mock="true">Order #1247 completed</p>
+                                        <p class="text-xs text-gray-500" data-mock="true">2 hours ago</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-8 h-8 bg-primary bg-opacity-10 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-plus text-primary text-sm"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-gray-900" data-mock="true">New product added</p>
+                                        <p class="text-xs text-gray-500" data-mock="true">5 hours ago</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-8 h-8 bg-warning bg-opacity-10 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-star text-warning text-sm"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-gray-900" data-mock="true">New 5-star review</p>
+                                        <p class="text-xs text-gray-500" data-mock="true">1 day ago</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-8 h-8 bg-secondary bg-opacity-10 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-dollar-sign text-secondary text-sm"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-gray-900" data-mock="true">Payment received</p>
+                                        <p class="text-xs text-gray-500" data-mock="true">1 day ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: VendorDashboardPreview -->
+
+        <!-- Admin Dashboard Preview Section -->
+        <!-- @COMPONENT: AdminDashboardPreview [marketplace analytics and management] -->
+        <section class="py-16 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4" data-mock="true">Advanced Admin Controls</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto" data-mock="true">
+                        Complete marketplace oversight with real-time analytics, vendor management, and system controls
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-8 shadow-lg">
+                    <!-- Admin Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-gradient-to-r from-primary to-blue-600 rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-blue-100 text-sm mb-1" data-mock="true">Total Revenue</p>
+                                    <p class="text-2xl font-bold" data-mock="true">$2.4M</p>
+                                    <p class="text-blue-100 text-sm">
+                                        <i class="fas fa-arrow-up mr-1"></i>
+                                        <span data-mock="true">+12.5% vs last month</span>
+                                    </p>
+                                </div>
+                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-chart-line text-white"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-secondary to-purple-600 rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-purple-100 text-sm mb-1" data-mock="true">Active Vendors</p>
+                                    <p class="text-2xl font-bold" data-mock="true">1,247</p>
+                                    <p class="text-purple-100 text-sm">
+                                        <i class="fas fa-arrow-up mr-1"></i>
+                                        <span data-mock="true">+8.3% growth</span>
+                                    </p>
+                                </div>
+                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-store text-white"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-success to-green-600 rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-green-100 text-sm mb-1" data-mock="true">Total Products</p>
+                                    <p class="text-2xl font-bold" data-mock="true">89,342</p>
+                                    <p class="text-green-100 text-sm">
+                                        <i class="fas fa-arrow-up mr-1"></i>
+                                        <span data-mock="true">+156 today</span>
+                                    </p>
+                                </div>
+                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-box text-white"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-warning to-orange-600 rounded-xl p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-orange-100 text-sm mb-1" data-mock="true">Active Users</p>
+                                    <p class="text-2xl font-bold" data-mock="true">45,682</p>
+                                    <p class="text-orange-100 text-sm">
+                                        <i class="fas fa-arrow-up mr-1"></i>
+                                        <span data-mock="true">+2.1% vs yesterday</span>
+                                    </p>
+                                </div>
+                                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-users text-white"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Tools Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- System Management -->
+                        <div class="space-y-6">
+                            <h3 class="text-xl font-semibold text-gray-900" data-mock="true">System Management</h3>
+                            
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h4 class="font-medium text-gray-900 mb-4" data-mock="true">Pending Approvals</h4>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between p-3 bg-white rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-warning bg-opacity-10 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-store text-warning text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900" data-mock="true">New Vendor Applications</p>
+                                                <p class="text-xs text-gray-500" data-mock="true">12 pending review</p>
+                                            </div>
+                                        </div>
+                                        <button class="text-primary text-sm font-medium hover:text-primary-dark">Review</button>
+                                    </div>
+
+                                    <div class="flex items-center justify-between p-3 bg-white rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-error bg-opacity-10 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-exclamation-triangle text-error text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900" data-mock="true">Reported Products</p>
+                                                <p class="text-xs text-gray-500" data-mock="true">5 need attention</p>
+                                            </div>
+                                        </div>
+                                        <button class="text-error text-sm font-medium hover:text-red-700">Review</button>
+                                    </div>
+
+                                    <div class="flex items-center justify-between p-3 bg-white rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-8 h-8 bg-primary bg-opacity-10 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-box text-primary text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900" data-mock="true">Product Translations</p>
+                                                <p class="text-xs text-gray-500" data-mock="true">23 pending review</p>
+                                            </div>
+                                        </div>
+                                        <button class="text-primary text-sm font-medium hover:text-primary-dark">Review</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analytics Preview -->
+                        <div class="space-y-6">
+                            <h3 class="text-xl font-semibold text-gray-900" data-mock="true">Analytics Overview</h3>
+                            
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h4 class="font-medium text-gray-900 mb-4" data-mock="true">Language Distribution</h4>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-sm text-gray-600">🇺🇸 English</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                <div class="bg-primary h-2 rounded-full" style="width: 65%"></div>
+                                            </div>
+                                            <span class="text-sm text-gray-600" data-mock="true">65%</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-sm text-gray-600">🇫🇷 French</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                <div class="bg-secondary h-2 rounded-full" style="width: 25%"></div>
+                                            </div>
+                                            <span class="text-sm text-gray-600" data-mock="true">25%</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-sm text-gray-600">🇸🇦 Arabic</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                <div class="bg-success h-2 rounded-full" style="width: 10%"></div>
+                                            </div>
+                                            <span class="text-sm text-gray-600" data-mock="true">10%</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 pt-6 border-t border-gray-200">
+                                    <h4 class="font-medium text-gray-900 mb-3" data-mock="true">Top Categories</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600" data-mock="true">Electronics</span>
+                                            <span class="font-medium text-gray-900" data-mock="true">$432K</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600" data-mock="true">Fashion</span>
+                                            <span class="font-medium text-gray-900" data-mock="true">$298K</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600" data-mock="true">Home & Garden</span>
+                                            <span class="font-medium text-gray-900" data-mock="true">$186K</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: AdminDashboardPreview -->
+
+        <!-- Multilingual Support Feature -->
+        <!-- @COMPONENT: MultilingualFeature [language support showcase] -->
+        <section class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4" data-mock="true">Shop in Your Language</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto" data-mock="true">
+                        Our platform supports multiple languages with seamless translation of products, categories, and interface elements
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                    <!-- Language Options -->
+                    <div class="space-y-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🇺🇸</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2" data-mock="true">English</h3>
+                            <p class="text-sm text-gray-600" data-mock="true">Full marketplace experience in English</p>
+                        </div>
+
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-secondary bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🇫🇷</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2" data-mock="true">Français</h3>
+                            <p class="text-sm text-gray-600" data-mock="true">Expérience complète en français</p>
+                        </div>
+
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-success bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🇸🇦</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2" data-mock="true">العربية</h3>
+                            <p class="text-sm text-gray-600" data-mock="true">تجربة كاملة باللغة العربية</p>
+                        </div>
+                    </div>
+
+                    <!-- Product Translation Example -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-gray-50 rounded-xl p-8">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-6 text-center" data-mock="true">Product Translation Example</h3>
+                            
+                            <!-- Language Tabs -->
+                            <div class="flex justify-center mb-6">
+                                <div class="bg-white rounded-lg p-1 shadow-sm">
+                                    <button class="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium" data-event="click:switchLanguage" data-lang="en">English</button>
+                                    <button class="px-4 py-2 text-gray-600 hover:text-gray-900 rounded-md text-sm font-medium" data-event="click:switchLanguage" data-lang="fr">Français</button>
+                                    <button class="px-4 py-2 text-gray-600 hover:text-gray-900 rounded-md text-sm font-medium" data-event="click:switchLanguage" data-lang="ar">العربية</button>
+                                </div>
+                            </div>
+
+                            <!-- Product Card Example -->
+                            <div class="bg-white rounded-xl shadow-sm overflow-hidden max-w-sm mx-auto">
+                                <!-- Modern smartphone with advanced camera features -->
+                                <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250" 
+                                     alt="Modern smartphone" 
+                                     class="w-full h-48 object-cover"
+                                     data-mock="true">
+                                <div class="p-4">
+                                    <h4 class="font-semibold text-gray-900 mb-2" data-translate="product_name" data-mock="true">
+                                        Premium Smartphone Pro
+                                    </h4>
+                                    <p class="text-sm text-gray-600 mb-3" data-translate="product_description" data-mock="true">
+                                        Latest smartphone with advanced camera, 5G connectivity, and premium design
+                                    </p>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-lg font-bold text-gray-900" data-mock="true">$899.00</span>
+                                        <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors" data-translate="add_to_cart" data-mock="true">
+                                            Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Translation Note -->
+                            <div class="mt-6 text-center">
+                                <p class="text-sm text-gray-500" data-mock="true">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Product names and descriptions are automatically displayed in your selected language
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: MultilingualFeature -->
+    </div>
+
+    <!-- Footer -->
+    <!-- @COMPONENT: Footer [links, contact info, language selector] -->
+    <footer class="bg-gray-900 text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4" data-mock="true">MarketHub</h3>
+                    <p class="text-gray-300 mb-4" data-mock="true">
+                        The global marketplace connecting vendors and customers worldwide with multilingual support.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                            <i class="fab fa-instagram text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                            <i class="fab fa-linkedin text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- For Customers -->
+                <div>
+                    <h4 class="font-semibold mb-4" data-mock="true">For Customers</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Browse Products</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Track Orders</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Customer Support</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Returns & Refunds</a></li>
+                    </ul>
+                </div>
+
+                <!-- For Vendors -->
+                <div>
+                    <h4 class="font-semibold mb-4" data-mock="true">For Vendors</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Sell on MarketHub</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Vendor Dashboard</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Seller Resources</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Fee Structure</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h4 class="font-semibold mb-4" data-mock="true">Support</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors" data-mock="true">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 text-sm" data-mock="true">
+                    © 2024 MarketHub. All rights reserved.
+                </p>
+                <div class="flex items-center space-x-4 mt-4 md:mt-0">
+                    <span class="text-gray-400 text-sm" data-mock="true">Language:</span>
+                    <select class="bg-gray-800 border border-gray-700 rounded-md px-3 py-1 text-sm text-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="en">🇺🇸 English</option>
+                        <option value="fr">🇫🇷 Français</option>
+                        <option value="ar">🇸🇦 العربية</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- @END_COMPONENT: Footer -->
+
+    <!-- JavaScript for Interactive Features -->
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        
+        // Language switching functionality (demo only)
+        (function() {
+            const languageButtons = document.querySelectorAll('[data-event="click:switchLanguage"]');
+            const productTranslations = {
+                en: {
+                    name: "Premium Smartphone Pro",
+                    description: "Latest smartphone with advanced camera, 5G connectivity, and premium design",
+                    button: "Add to Cart"
+                },
+                fr: {
+                    name: "Smartphone Premium Pro",
+                    description: "Smartphone dernier cri avec caméra avancée, connectivité 5G et design premium",
+                    button: "Ajouter au Panier"
+                },
+                ar: {
+                    name: "هاتف ذكي متقدم برو",
+                    description: "أحدث هاتف ذكي مع كاميرا متقدمة واتصال 5G وتصميم متميز",
+                    button: "إضافة إلى السلة"
+                }
+            };
+
+            languageButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const lang = this.getAttribute('data-lang');
+                    
+                    // Update active button state
+                    languageButtons.forEach(btn => {
+                        btn.className = 'px-4 py-2 text-gray-600 hover:text-gray-900 rounded-md text-sm font-medium';
+                    });
+                    this.className = 'px-4 py-2 bg-primary text-white rounded-md text-sm font-medium';
+                    
+                    // Update product content
+                    const productNameEl = document.querySelector('[data-translate="product_name"]');
+                    const productDescEl = document.querySelector('[data-translate="product_description"]');
+                    const addToCartBtn = document.querySelector('[data-translate="add_to_cart"]');
+                    
+                    if (productNameEl && productTranslations[lang]) {
+                        productNameEl.textContent = productTranslations[lang].name;
+                        productDescEl.textContent = productTranslations[lang].description;
+                        addToCartBtn.textContent = productTranslations[lang].button;
+                    }
+                });
+            });
+        })();
+
+        // Mobile menu toggle (placeholder)
+        // TODO: Implement responsive navigation menu
+
+        // Cart functionality (placeholder)
+        // TODO: Implement shopping cart with state management
+
+        // Search functionality (placeholder)
+        // TODO: Implement product search with filters and sorting
+
+        // Real-time features setup (placeholder)
+        // TODO: Implement Socket.IO connection for real-time updates
+    </script>
+</body>
+</html>

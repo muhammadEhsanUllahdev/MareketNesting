@@ -1,0 +1,171 @@
+Perfect 👍 let’s refactor your AdvancedAddProductForm so you can enter and store product name/description separately per language.
+I’ll show you a clean multi-language form with Tabs (using shadcn/ui) and integration with your existing API.
+
+🔹 Step 1: Update Product Type
+
+Instead of a flat name/description, support translations:
+
+interface ProductTranslation {
+  [lang: string]: {
+    name: string;
+    description: string;
+  };
+}
+
+interface Product {
+  id?: string;
+  translations: ProductTranslation;
+  price: string;
+  stock: number;
+  images: string[];
+  // ...other fields
+}
+
+🔹 Step 2: Refactor AdvancedAddProductForm.tsx
+
+Here’s a simplified but production-ready version:
+
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+
+const SUPPORTED_LANGS = ["en", "fr", "ar"];
+
+export function AdvancedAddProductForm({
+  onSubmit,
+  onCancel,
+  isLoading,
+  editMode = false,
+  editProduct,
+}: {
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+  editMode?: boolean;
+  editProduct?: any;
+}) {
+  // Default translations object
+  const [translations, setTranslations] = useState(
+    SUPPORTED_LANGS.reduce((acc, lang) => {
+      acc[lang] = { name: "", description: "" };
+      return acc;
+    }, {} as Record<string, { name: string; description: string }>)
+  );
+
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
+
+  // Pre-fill if editing
+  useEffect(() => {
+    if (editMode && editProduct) {
+      if (editProduct.translations) {
+        setTranslations(editProduct.translations);
+      }
+      setPrice(editProduct.price || "");
+      setStock(editProduct.stock?.toString() || "");
+    }
+  }, [editMode, editProduct]);
+
+  const handleChange = (lang: string, field: "name" | "description", value: string) => {
+    setTranslations((prev) => ({
+      ...prev,
+      [lang]: {
+        ...prev[lang],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      translations,
+      price,
+      stock: parseInt(stock, 10),
+    };
+    onSubmit(payload);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+      {/* Multilingual Fields */}
+      <Tabs defaultValue="en">
+        <TabsList>
+          {SUPPORTED_LANGS.map((lang) => (
+            <TabsTrigger key={lang} value={lang}>
+              {lang.toUpperCase()}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {SUPPORTED_LANGS.map((lang) => (
+          <TabsContent key={lang} value={lang} className="space-y-4">
+            <Input
+              placeholder={`Name (${lang})`}
+              value={translations[lang]?.name || ""}
+              onChange={(e) => handleChange(lang, "name", e.target.value)}
+            />
+            <Textarea
+              placeholder={`Description (${lang})`}
+              value={translations[lang]?.description || ""}
+              onChange={(e) => handleChange(lang, "description", e.target.value)}
+            />
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      {/* Other fields */}
+      <Input
+        placeholder="Price"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+      />
+      <Input
+        placeholder="Stock"
+        value={stock}
+        onChange={(e) => setStock(e.target.value)}
+      />
+
+      <div className="flex gap-4">
+        <Button type="submit" disabled={isLoading}>
+          {editMode ? "Update Product" : "Add Product"}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+🔹 Step 3: Adjust Fetch & Display
+
+When saving (onSubmit), payload now contains:
+
+{
+  "translations": {
+    "en": { "name": "Shoes", "description": "Running shoes" },
+    "fr": { "name": "Chaussures", "description": "Chaussures de course" },
+    "ar": { "name": "حذاء", "description": "حذاء للجري" }
+  },
+  "price": "50.00",
+  "stock": 20
+}
+
+
+When listing products (e.g., index.tsx), show name in current language:
+
+const displayName =
+  product.translations[i18n.language]?.name ||
+  product.translations["en"].name;
+
+
+✅ Now every product has separate values per language for name & description, editable in tabs.
+Your forms (add & edit) will handle this automatically.

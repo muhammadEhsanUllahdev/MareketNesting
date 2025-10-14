@@ -1,0 +1,302 @@
+multi-vendor-marketplace-backend-frontend-setup.md
+
+1) Objective
+
+Create a complete, production-ready scaffolding for a multi-vendor multilingual e-commerce marketplace (backend + frontend) that matches the requested tech stack and folder structure. This document provides a clear, step-by-step project plan and actionable tasks so a Replit Agent (or developer) can implement the repository, wiring, configuration, and base features required before page-by-page UI integration begins.
+
+2) General Instructions
+
+Follow the provided tech stack and folder structure conventions.
+
+Implement a modular, scalable architecture (MVC for backend; feature-based for frontend).
+
+Use PostgreSQL for structured relational data, and MongoDB for caching/logging/analytics.
+
+Use consistent naming conventions and keep files small and focused.
+
+Add comprehensive scripts in package.json for development, testing, linting, debugging, and production build.
+
+Add ndb debugger for backend so developers can debug backend logic easily (ndb wrapper for node).
+
+Include README skeletons in both backend/ and frontend/ explaining how to run locally and how to deploy.
+
+Add environment variable templates (.env.example) for both backend and frontend.
+
+Use ESLint + Prettier for code style (add config files and npm scripts).
+
+Add unit test scaffolding with Jest for both backend and frontend.
+
+Make the repo deployment-ready (Dockerfile and docker-compose skeleton, plus Heroku/Vercel-ready scripts).
+
+Maintain three extra tracking files in the repo root:
+
+.env.example — contains all environment variables required by backend and frontend.
+
+docs/functionalities.md — a changelog-style list of completed functionalities (e.g., Added Income Graph in Admin Dashboard → later updated to Earning Graph). This file must be updated whenever any functionality is implemented or changed.
+
+docs/agent-commands-log.md — on every new command that the agent executes, record what was done in this file (append-only log).
+
+3) Task List (high level, numbered with subtasks and validation steps)
+
+3.1 Repo & Mono-repo Scaffolding
+
+Create root repo and folders:
+
+backend/
+
+frontend/
+
+infra/ (docker, k8s skeleton)
+
+docs/
+
+scripts/
+
+Initialize git, add .gitignore, add CODE_OF_CONDUCT.md and CONTRIBUTING.md.
+
+Add the three extra files:
+
+.env.example
+
+docs/functionalities.md
+
+docs/agent-commands-log.md
+
+Validation: ls shows the top-level folders, git status clean with initial commit, and the three extra files exist.
+
+3.2 Database Strategy (PostgreSQL + MongoDB)
+
+PostgreSQL (Relational Data)
+
+Products table (base info: id, vendorId, price, stock, timestamps).
+
+Product Translations table (productId, lang, name, description).
+
+Categories + category_translations.
+
+Users, Vendors, Orders, Transactions.
+
+Example Schema:
+
+CREATE TABLE products (
+  id SERIAL PRIMARY KEY,
+  vendor_id INT NOT NULL,
+  price NUMERIC,
+  stock INT,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE product_translations (
+  id SERIAL PRIMARY KEY,
+  product_id INT REFERENCES products(id) ON DELETE CASCADE,
+  lang VARCHAR(5) NOT NULL, -- "en", "fr", "ar"
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  UNIQUE (product_id, lang)
+);
+
+MongoDB (Flexible / Non-Relational Data)
+
+Logs (structured events for debugging/auditing).
+
+Analytics/Events (user actions, product views).
+
+Cached merged product objects (with all translations included) for fast reads.
+
+Example Mongo Document:
+
+{
+  "_id": "p123",
+  "price": 49.99,
+  "translations": {
+    "en": { "name": "Shoes", "desc": "Comfortable running shoes" },
+    "fr": { "name": "Chaussures", "desc": "Chaussures de course confortables" },
+    "ar": { "name": "أحذية", "desc": "أحذية جري مريحة" }
+  }
+}
+
+Validation: Connect both PostgreSQL and MongoDB containers via docker-compose, run migrations, and confirm schema + collections exist.
+
+3.3 Admin Dashboard (Multilingual Product Management)
+
+Option A – All Inputs at Once
+
+Product creation/edit form shows all supported language fields side-by-side.
+
+On submit, frontend sends array of translations:
+
+{
+  "price": 49.99,
+  "translations": [
+    { "lang": "en", "name": "Shoes", "description": "Comfortable running shoes" },
+    { "lang": "fr", "name": "Chaussures", "description": "Chaussures de course confortables" },
+    { "lang": "ar", "name": "أحذية", "description": "أحذية جري مريحة" }
+  ]
+}
+
+Backend inserts into products + product_translations.
+
+Option B – Vendor Dashboard Simpler Input
+
+Vendors only required to enter one default language at creation (e.g., English).
+
+UI uses language tabs (EN | FR | AR) for adding/editing translations.
+
+Admin can enforce translation completeness, vendors can edit later.
+
+Validation: Test creation of products from admin dashboard with full translations, and from vendor dashboard with partial translations.
+
+3.4 Backend Handling (Express API)
+
+Create Product
+
+Insert product base record into products.
+
+Insert translations into product_translations.
+
+Update Product
+
+Update product base fields.
+
+Upsert translations (update if exists, insert if missing).
+
+Read Product
+
+Join products with product_translations filtered by lang.
+
+If requested translation missing, fallback to default language (EN).
+
+Validation: Create/update/read products via API and confirm correct translations handling.
+
+
+
+
+
+
+
+# multi-vendor-marketplace-backend-frontend-setup.md
+
+## 1) Objective
+
+Create a complete, production-ready scaffolding for a **multi-vendor multilingual e-commerce marketplace** (backend + frontend) that matches the requested tech stack and folder structure. This document provides a clear, step-by-step project plan and actionable tasks so a Replit Agent (or developer) can implement the repository, wiring, configuration, and base features required before page-by-page UI integration begins.
+
+---
+
+## 2) General Instructions
+
+* Follow the provided tech stack and folder structure conventions.
+* Implement a modular, scalable architecture (MVC for backend; feature-based for frontend).
+* Use PostgreSQL for structured relational data, and MongoDB for caching/logging/analytics.
+* Use consistent naming conventions and keep files small and focused.
+* Add comprehensive scripts in package.json for development, testing, linting, debugging, and production build.
+* Add **ndb debugger** for backend so developers can debug backend logic easily (`ndb` wrapper for node).
+* Include README skeletons in both backend/ and frontend/ explaining how to run locally and how to deploy.
+* Add environment variable templates (.env.example) for both backend and frontend.
+* Use ESLint + Prettier for code style (add config files and npm scripts).
+* Add unit test scaffolding with Jest for both backend and frontend.
+* Make the repo deployment-ready (Dockerfile and docker-compose skeleton, plus Heroku/Vercel-ready scripts).
+* Maintain **three extra tracking files** in the repo root:
+
+  1. `.env.example` — contains all environment variables required by backend and frontend.
+  2. `docs/functionalities.md` — a changelog-style list of completed functionalities (e.g., *Added Income Graph in Admin Dashboard → later updated to Earning Graph*). This file must be updated whenever any functionality is implemented or changed.
+  3. `docs/agent-commands-log.md` — on every new command that the agent executes, record what was done in this file (append-only log).
+
+---
+
+## 3) Task List (continued)
+
+### 3.5 Frontend Integration (React + i18next)
+
+1. **Static UI Strings**
+
+   * Keep in `/locales/{lang}/common.json`.
+   * Example:
+
+   ```json
+   {
+     "home": "Home",
+     "cart": "Cart",
+     "add_to_cart": "Add to Cart"
+   }
+   ```
+
+   * Usage:
+
+   ```jsx
+   const { t } = useTranslation();
+   <button>{t("add_to_cart")}</button>
+   ```
+
+2. **Dynamic Product/Category Data**
+
+   * Fetch translations from backend.
+   * Usage:
+
+   ```jsx
+   const { i18n } = useTranslation();
+   const lang = i18n.language;
+   const productName = product.translations.find(t => t.lang === lang)?.name
+                     || product.translations.find(t => t.lang === "en").name;
+   ```
+
+**Validation:** Switch UI language via dropdown and confirm both static and dynamic translations update correctly.
+
+---
+
+### 3.6 Fallback Mechanism
+
+* If translation for the current language does not exist, always fallback to default language (EN).
+* Implement fallback logic both on backend (SQL join with fallback to EN) and frontend (array search).
+
+**Validation:** Create a product with only EN translation, switch frontend to FR, and confirm EN version is shown.
+
+---
+
+### 3.7 MongoDB Usage (Optional Caching)
+
+1. Cache frequently requested product documents in MongoDB in a merged format:
+
+   ```json
+   {
+     "_id": "p123",
+     "price": 49.99,
+     "translations": {
+       "en": { "name": "Shoes", "desc": "Comfortable running shoes" },
+       "fr": { "name": "Chaussures", "desc": "Chaussures de course confortables" },
+       "ar": { "name": "أحذية", "desc": "أحذية جري مريحة" }
+     }
+   }
+   ```
+2. Implement a service that:
+
+   * Checks Mongo cache first.
+   * If cache miss → fetch from Postgres → rebuild merged doc → insert into Mongo.
+   * Optional TTL for cache invalidation.
+
+**Validation:** Benchmark product listing queries with and without cache to confirm performance improvement.
+
+---
+
+### 3.8 Completion Instructions
+
+Mark the setup phase complete when the following exit conditions are met:
+
+* Backend and frontend folders created with the described file/folder skeletons.
+* `.env.example` file exists and lists all required variables.
+* `docs/functionalities.md` exists and has at least one entry logged.
+* `docs/agent-commands-log.md` exists and records at least one executed agent command.
+* `npm run dev` in backend starts Express and initializes Socket.IO; `GET /health` returns 200.
+* `npm run debug` launches backend under `ndb` debugger.
+* `npm start` (or `npm run dev`) in frontend starts React dev server and connects to backend health endpoint.
+* Sequelize migrations run successfully and core tables exist in Postgres.
+* MongoDB connection works, and product cache documents can be inserted and read.
+* Redis connection is established and sample keys can be set/read.
+* Basic chat flow tested locally (two browsers exchange socket messages and messages persist to DB).
+* Docker compose brings up services (Postgres, MongoDB, Redis, backend, frontend).
+* README files updated with local dev instructions and environment variable templates.
+
+When all conditions above are met, the agent should mark the setup step as DONE and wait for the UI page-by-page integration tasks (the user will provide pages one by one and UI should be same as possible).
+
+---
+
+*End of file.*

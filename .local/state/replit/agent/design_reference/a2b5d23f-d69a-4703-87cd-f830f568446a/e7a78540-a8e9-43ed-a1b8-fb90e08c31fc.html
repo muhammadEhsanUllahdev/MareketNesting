@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiMarket - Multi-Vendor Multilingual Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#faf5ff',
+                            100: '#f3e8ff',
+                            200: '#e9d5ff',
+                            300: '#d8b4fe',
+                            400: '#c084fc',
+                            500: '#a855f7',
+                            600: '#9333ea',
+                            700: '#7c3aed',
+                            800: '#6b21a8',
+                            900: '#581c87',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="font-inter bg-gray-50 antialiased">
+    <!-- Navigation Header -->
+    <header class="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center">
+                    <div class="h-8 w-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-store text-white text-sm"></i>
+                    </div>
+                    <span class="ml-2 text-xl font-bold text-gray-900">MultiMarket</span>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-2xl mx-8">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" placeholder="Search products, categories, vendors..." 
+                               class="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- Right Navigation -->
+                <div class="flex items-center space-x-4">
+                    <!-- Language Switcher -->
+                    <div class="relative" data-mock="true">
+                        <button class="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-primary-600 transition-colors">
+                            <span class="text-lg">🇺🇸</span>
+                            <span>EN</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <!-- @FUNCTIONALITY: Dropdown should show available languages (EN, FR, AR) with flag icons -->
+                    </div>
+
+                    <!-- Role Badge -->
+                    <span class="px-3 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded-full">
+                        Customer
+                    </span>
+
+                    <!-- Cart -->
+                    <button class="relative p-2 text-gray-600 hover:text-primary-600 transition-colors">
+                        <i class="fas fa-shopping-cart text-lg"></i>
+                        <span class="absolute -top-1 -right-1 bg-primary-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                    </button>
+
+                    <!-- User Menu -->
+                    <div class="relative" data-mock="true">
+                        <button class="flex items-center space-x-2 p-1 text-gray-700 hover:text-primary-600 transition-colors">
+                            <!-- Profile avatar placeholder image of a professional person -->
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32" 
+                                 alt="User Avatar" class="w-8 h-8 rounded-full object-cover">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-r from-primary-600 to-primary-800 text-white overflow-hidden">
+        <!-- Hero background with marketplace imagery -->
+        <div class="absolute inset-0 bg-black bg-opacity-20"></div>
+        <div style="background-image: url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1920&h=600'); background-size: cover; background-position: center; background-blend-mode: overlay;" class="absolute inset-0"></div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+            <div class="max-w-3xl">
+                <h1 class="text-4xl lg:text-6xl font-bold mb-6 leading-tight" data-bind="hero.title">
+                    Discover Amazing Products from Global Vendors
+                </h1>
+                <p class="text-xl lg:text-2xl mb-8 text-purple-100" data-bind="hero.subtitle">
+                    Shop from thousands of trusted sellers worldwide. Multi-language support, secure payments, and fast shipping.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button class="bg-white text-primary-700 px-8 py-4 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                        Start Shopping
+                    </button>
+                    <button class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-primary-700 transition-colors">
+                        Become a Seller
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Categories Navigation -->
+        <section class="py-8 border-b">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Shop by Category</h2>
+                <button class="text-primary-600 hover:text-primary-700 font-medium">View All Categories</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                <!-- @MAP: categories.map(category => ( -->
+                <div class="flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary-200 transition-colors">
+                        <i class="fas fa-laptop text-primary-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 text-center">Electronics</span>
+                </div>
+                <div class="flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary-200 transition-colors">
+                        <i class="fas fa-tshirt text-primary-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 text-center">Fashion</span>
+                </div>
+                <div class="flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary-200 transition-colors">
+                        <i class="fas fa-home text-primary-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 text-center">Home & Garden</span>
+                </div>
+                <div class="flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary-200 transition-colors">
+                        <i class="fas fa-gamepad text-primary-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 text-center">Gaming</span>
+                </div>
+                <div class="flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary-200 transition-colors">
+                        <i class="fas fa-book text-primary-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 text-center">Books</span>
+                </div>
+                <div class="flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary-200 transition-colors">
+                        <i class="fas fa-dumbbell text-primary-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 text-center">Sports</span>
+                </div>
+                <div class="flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary-200 transition-colors">
+                        <i class="fas fa-car text-primary-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 text-center">Automotive</span>
+                </div>
+                <div class="flex flex-col items-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow cursor-pointer group">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary-200 transition-colors">
+                        <i class="fas fa-plus text-primary-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 text-center">More</span>
+                </div>
+                <!-- @END_MAP -->
+            </div>
+        </section>
+
+        <!-- Featured Products -->
+        <section class="py-12">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-2">Featured Products</h2>
+                    <p class="text-gray-600">Discover the best deals from our trusted vendors</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Sort by:</label>
+                        <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option>Featured</option>
+                            <option>Price: Low to High</option>
+                            <option>Price: High to Low</option>
+                            <option>Newest</option>
+                            <option>Best Rating</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center border border-gray-300 rounded-lg">
+                        <button class="p-2 text-gray-400 hover:text-primary-600 border-r border-gray-300">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button class="p-2 text-primary-600">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- @MAP: products.map(product => ( -->
+                <!-- Product Card 1 - Premium headphones -->
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow border group cursor-pointer">
+                    <div class="relative overflow-hidden rounded-t-xl">
+                        <!-- High-quality wireless headphones in a modern setting -->
+                        <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                             alt="Premium Wireless Headphones" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute top-3 left-3">
+                            <span class="bg-primary-500 text-white text-xs font-semibold px-2 py-1 rounded-full">Featured</span>
+                        </div>
+                        <div class="absolute top-3 right-3">
+                            <button class="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+                                <i class="far fa-heart text-gray-400 hover:text-red-500"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="font-semibold text-gray-900 line-clamp-2" data-bind="product.name">Premium Wireless Headphones</h3>
+                            <div class="flex items-center ml-2">
+                                <div class="flex text-yellow-400 text-sm">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                </div>
+                                <span class="text-xs text-gray-500 ml-1">(124)</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 line-clamp-2">High-quality wireless headphones with noise cancellation and premium sound</p>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-2xl font-bold text-gray-900">$199.99</span>
+                                <span class="text-sm text-gray-500 line-through">$249.99</span>
+                            </div>
+                            <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">20% OFF</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-500 mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-store mr-1"></i>
+                                <span>TechWorld Electronics</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-shipping-fast mr-1"></i>
+                                <span>Fast Shipping</span>
+                            </div>
+                        </div>
+                        <button class="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                            <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product Card 2 - Gaming laptop -->
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow border group cursor-pointer">
+                    <div class="relative overflow-hidden rounded-t-xl">
+                        <!-- Gaming laptop on a modern desk setup -->
+                        <img src="https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                             alt="Gaming Laptop Pro" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute top-3 left-3">
+                            <span class="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full">Hot Deal</span>
+                        </div>
+                        <div class="absolute top-3 right-3">
+                            <button class="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+                                <i class="far fa-heart text-gray-400 hover:text-red-500"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="font-semibold text-gray-900 line-clamp-2">Gaming Laptop Pro 15"</h3>
+                            <div class="flex items-center ml-2">
+                                <div class="flex text-yellow-400 text-sm">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="far fa-star"></i>
+                                </div>
+                                <span class="text-xs text-gray-500 ml-1">(89)</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 line-clamp-2">High-performance gaming laptop with RTX graphics and fast SSD storage</p>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-2xl font-bold text-gray-900">$1,299.99</span>
+                                <span class="text-sm text-gray-500 line-through">$1,599.99</span>
+                            </div>
+                            <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">19% OFF</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-500 mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-store mr-1"></i>
+                                <span>GameTech Store</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-truck mr-1"></i>
+                                <span>Free Shipping</span>
+                            </div>
+                        </div>
+                        <button class="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                            <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product Card 3 - Smartwatch -->
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow border group cursor-pointer">
+                    <div class="relative overflow-hidden rounded-t-xl">
+                        <!-- Modern smartwatch displaying fitness metrics -->
+                        <img src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                             alt="Smart Fitness Watch" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute top-3 left-3">
+                            <span class="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-full">New</span>
+                        </div>
+                        <div class="absolute top-3 right-3">
+                            <button class="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+                                <i class="far fa-heart text-gray-400 hover:text-red-500"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="font-semibold text-gray-900 line-clamp-2">Smart Fitness Watch</h3>
+                            <div class="flex items-center ml-2">
+                                <div class="flex text-yellow-400 text-sm">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <span class="text-xs text-gray-500 ml-1">(203)</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 line-clamp-2">Advanced fitness tracking with heart rate monitoring and GPS navigation</p>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-2xl font-bold text-gray-900">$299.99</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-500 mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-store mr-1"></i>
+                                <span>FitTech Wearables</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-award mr-1"></i>
+                                <span>Best Seller</span>
+                            </div>
+                        </div>
+                        <button class="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                            <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product Card 4 - Camera -->
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow border group cursor-pointer">
+                    <div class="relative overflow-hidden rounded-t-xl">
+                        <!-- Professional mirrorless camera with lens -->
+                        <img src="https://images.unsplash.com/photo-1502920917128-1aa500764cbd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" 
+                             alt="Professional Camera Kit" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute top-3 left-3">
+                            <span class="bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">Bundle</span>
+                        </div>
+                        <div class="absolute top-3 right-3">
+                            <button class="p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+                                <i class="far fa-heart text-gray-400 hover:text-red-500"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="font-semibold text-gray-900 line-clamp-2">Professional Camera Kit</h3>
+                            <div class="flex items-center ml-2">
+                                <div class="flex text-yellow-400 text-sm">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                </div>
+                                <span class="text-xs text-gray-500 ml-1">(156)</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3 line-clamp-2">Complete camera bundle with lens, tripod, and professional accessories</p>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-2xl font-bold text-gray-900">$899.99</span>
+                                <span class="text-sm text-gray-500 line-through">$1,199.99</span>
+                            </div>
+                            <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">25% OFF</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-gray-500 mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-store mr-1"></i>
+                                <span>PhotoPro Equipment</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-shield-alt mr-1"></i>
+                                <span>2Y Warranty</span>
+                            </div>
+                        </div>
+                        <button class="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                            <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_MAP -->
+            </div>
+
+            <div class="text-center mt-12">
+                <button class="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                    Load More Products
+                </button>
+            </div>
+        </section>
+
+        <!-- Vendor Spotlight -->
+        <section class="py-12 bg-gradient-to-r from-gray-50 to-gray-100 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Featured Vendors</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">Discover amazing products from our trusted seller community worldwide</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- @MAP: vendors.map(vendor => ( -->
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-6 text-center">
+                        <!-- Vendor profile image of a professional business owner -->
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=80&h=80" 
+                             alt="TechWorld Electronics" class="w-20 h-20 rounded-full mx-auto mb-4 object-cover">
+                        <h3 class="font-bold text-lg text-gray-900 mb-2">TechWorld Electronics</h3>
+                        <p class="text-gray-600 mb-4">Premium electronics and gadgets from Silicon Valley</p>
+                        <div class="flex items-center justify-center space-x-4 text-sm text-gray-500 mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                <span>4.8 Rating</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-box mr-1"></i>
+                                <span>1.2k Products</span>
+                            </div>
+                        </div>
+                        <button class="w-full border border-primary-600 text-primary-600 py-2 rounded-lg hover:bg-primary-50 transition-colors font-medium">
+                            Visit Store
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-6 text-center">
+                        <!-- Vendor profile image of a female business entrepreneur -->
+                        <img src="https://pixabay.com/get/g1a98e48a8e7973a0fe7101e09b39529a2e901e091963ef2bc5e0404a9d84e647c5f0c607a828579e2ab3cd3bfc223fb184e1b6e4aee66a785dc44d3c9f065b1b_1280.jpg" 
+                             alt="Fashion Forward Boutique" class="w-20 h-20 rounded-full mx-auto mb-4 object-cover">
+                        <h3 class="font-bold text-lg text-gray-900 mb-2">Fashion Forward Boutique</h3>
+                        <p class="text-gray-600 mb-4">Trendy clothing and accessories for modern lifestyle</p>
+                        <div class="flex items-center justify-center space-x-4 text-sm text-gray-500 mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                <span>4.9 Rating</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-box mr-1"></i>
+                                <span>856 Products</span>
+                            </div>
+                        </div>
+                        <button class="w-full border border-primary-600 text-primary-600 py-2 rounded-lg hover:bg-primary-50 transition-colors font-medium">
+                            Visit Store
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-6 text-center">
+                        <!-- Vendor profile image of a craftsman or artisan -->
+                        <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=80&h=80" 
+                             alt="Home & Garden Paradise" class="w-20 h-20 rounded-full mx-auto mb-4 object-cover">
+                        <h3 class="font-bold text-lg text-gray-900 mb-2">Home & Garden Paradise</h3>
+                        <p class="text-gray-600 mb-4">Beautiful home decor and garden essentials</p>
+                        <div class="flex items-center justify-center space-x-4 text-sm text-gray-500 mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                <span>4.7 Rating</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-box mr-1"></i>
+                                <span>2.1k Products</span>
+                            </div>
+                        </div>
+                        <button class="w-full border border-primary-600 text-primary-600 py-2 rounded-lg hover:bg-primary-50 transition-colors font-medium">
+                            Visit Store
+                        </button>
+                    </div>
+                    <!-- @END_MAP -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Preview Section -->
+        <section class="py-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Powerful Dashboards for Every Role</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Whether you're a customer, seller, or admin, our platform provides intuitive tools to manage your marketplace experience</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Customer Dashboard Preview -->
+                <!-- @COMPONENT: DashboardPreview [role=customer] -->
+                <div class="bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl p-8 text-white">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-bold">Customer Dashboard</h3>
+                            <p class="text-primary-100">Shop, track orders, manage wishlist</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-shopping-bag mr-2"></i> Orders</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">12</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-heart mr-2"></i> Wishlist</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">24</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-star mr-2"></i> Reviews</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">8</span>
+                        </div>
+                    </div>
+                    <button class="w-full bg-white text-primary-700 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                        View Customer Demo
+                    </button>
+                </div>
+                <!-- @END_COMPONENT: DashboardPreview -->
+
+                <!-- Seller Dashboard Preview -->
+                <!-- @COMPONENT: DashboardPreview [role=seller] -->
+                <div class="bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-8 text-white">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-store text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-bold">Seller Dashboard</h3>
+                            <p class="text-green-100">Manage products, track sales, analytics</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-box mr-2"></i> Products</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">156</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-chart-line mr-2"></i> Sales</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">$2.4k</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-users mr-2"></i> Customers</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">89</span>
+                        </div>
+                    </div>
+                    <button class="w-full bg-white text-green-700 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                        View Seller Demo
+                    </button>
+                </div>
+                <!-- @END_COMPONENT: DashboardPreview -->
+
+                <!-- Admin Dashboard Preview -->
+                <!-- @COMPONENT: DashboardPreview [role=admin] -->
+                <div class="bg-gradient-to-br from-orange-500 to-orange-700 rounded-xl p-8 text-white">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-cogs text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-bold">Admin Dashboard</h3>
+                            <p class="text-orange-100">Full platform control & analytics</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-users mr-2"></i> Total Users</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">1.2k</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-store mr-2"></i> Vendors</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">45</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="flex items-center"><i class="fas fa-chart-bar mr-2"></i> Revenue</span>
+                            <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">$45k</span>
+                        </div>
+                    </div>
+                    <button class="w-full bg-white text-orange-700 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                        View Admin Demo
+                    </button>
+                </div>
+                <!-- @END_COMPONENT: DashboardPreview -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+                <!-- Company Info -->
+                <div class="lg:col-span-2">
+                    <div class="flex items-center mb-6">
+                        <div class="h-8 w-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-store text-white text-sm"></i>
+                        </div>
+                        <span class="ml-2 text-xl font-bold">MultiMarket</span>
+                    </div>
+                    <p class="text-gray-300 mb-6 max-w-md">
+                        The world's leading multi-vendor marketplace connecting buyers and sellers globally. Shop from thousands of trusted vendors with multi-language support.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">
+                            <i class="fab fa-instagram text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">
+                            <i class="fab fa-linkedin text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">Quick Links</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">How It Works</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Become a Seller</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Careers</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Blog</a></li>
+                    </ul>
+                </div>
+
+                <!-- Customer Service -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">Customer Service</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Shipping Info</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Returns</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Track Order</a></li>
+                    </ul>
+                </div>
+
+                <!-- Legal -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">Legal</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Cookie Policy</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">GDPR</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Compliance</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 mt-12 pt-8">
+                <div class="flex flex-col lg:flex-row justify-between items-center">
+                    <p class="text-gray-400 text-sm">
+                        © 2024 MultiMarket. All rights reserved.
+                    </p>
+                    <div class="flex items-center space-x-6 mt-4 lg:mt-0">
+                        <div class="flex items-center space-x-2 text-sm text-gray-400">
+                            <i class="fas fa-globe"></i>
+                            <span>Available in 15+ languages</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-sm text-gray-400">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Secure & Trusted</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            // TODO: Implement language switching functionality
+            // TODO: Implement cart functionality
+            // TODO: Implement user authentication
+            // TODO: Implement product filtering and sorting
+            // TODO: Implement real-time updates for product availability
+            // TODO: Connect to backend API for dynamic data loading
+            
+            console.log('MultiMarket marketplace loaded successfully');
+            
+            // Mock language switching demo
+            const languageButton = document.querySelector('[data-mock="true"]');
+            if (languageButton) {
+                languageButton.addEventListener('click', function() {
+                    console.log('Language switcher clicked - implement i18next integration');
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
