@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { Link } from "wouter";
 
 const SellerBuyerTabs = () => {
   const [activeTab, setActiveTab] = useState("sellers");
@@ -84,10 +85,12 @@ const SellerBuyerTabs = () => {
           </div>
 
           <div className="flex justify-center">
-            <Button className="bg-cebleu-gold text-cebleu-dark hover:bg-cebleu-gold/90 group text-sm px-4 py-2 h-auto">
-              {t("index.startSelling")}
-              <ChevronRight className="ml-1" size={16} />
-            </Button>
+            <Link href="/auth">
+              <Button className="bg-cebleu-gold text-cebleu-dark hover:bg-cebleu-gold/90 group text-sm px-4 py-2 h-auto">
+                {t("index.startSelling")}
+                <ChevronRight className="ml-1" size={16} />
+              </Button>
+            </Link>
           </div>
         </div>
       )}
@@ -140,10 +143,12 @@ const SellerBuyerTabs = () => {
           </div>
 
           <div className="flex justify-center">
-            <Button className="bg-cebleu-gold text-cebleu-dark hover:bg-cebleu-gold/90 group text-sm px-4 py-2 h-auto">
-              {t("index.shopNow")}
-              <ChevronRight className="ml-1" size={16} />
-            </Button>
+            <Link href="/auth">
+              <Button className="bg-cebleu-gold text-cebleu-dark hover:bg-cebleu-gold/90 group text-sm px-4 py-2 h-auto">
+                {t("index.shopNow")}
+                <ChevronRight className="ml-1" size={16} />
+              </Button>
+            </Link>
           </div>
         </div>
       )}

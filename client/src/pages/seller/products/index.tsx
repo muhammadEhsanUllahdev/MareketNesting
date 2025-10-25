@@ -98,13 +98,13 @@ export default function SellerProducts() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
 
-   useEffect(() => {
-    const KEY = "sellerProductsSeeded";
-    if (!localStorage.getItem(KEY)) {
-      seedSellerProducts(); // uses /api/products endpoint your page already uses:contentReference[oaicite:3]{index=3}
-      localStorage.setItem(KEY, "true");
-    }
-  }, []);
+  //  useEffect(() => {
+  //   const KEY = "sellerProductsSeeded";
+  //   if (!localStorage.getItem(KEY)) {
+  //     seedSellerProducts(); // uses /api/products endpoint your page already uses:contentReference[oaicite:3]{index=3}
+  //     localStorage.setItem(KEY, "true");
+  //   }
+  // }, []);
   // Fetch seller's products
   const {
     data: products = [],
@@ -275,7 +275,7 @@ export default function SellerProducts() {
   };
 
   return (
-    <DashboardLayout title={t("header.heading")}>
+    <DashboardLayout title={user ? `${user?.store?.storeName}` : t("header.heading")}>
       <div className="space-y-6 p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -288,20 +288,6 @@ export default function SellerProducts() {
             </p>
           </div>
           <div className="flex gap-3">
-            {/* {(products as Product[]).length === 0 && (
-              <Button
-                onClick={() => seedProductsMutation.mutate()}
-                disabled={seedProductsMutation.isPending}
-                variant="outline"
-                className="border-green-600 text-green-600 hover:bg-green-50"
-                data-testid="button-seed-products"
-              >
-                <Package className="h-4 w-4 mr-2" />
-                {seedProductsMutation.isPending
-                  ? "Creating..."
-                  : "Add Sample Products"}
-              </Button>
-            )} */}
             <Button
               onClick={handleAddProduct}
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
@@ -750,7 +736,8 @@ export default function SellerProducts() {
                 console.error("Error creating product:", error);
                 toast({
                   title: t("toast.error"),
-                  description: error.message || t("toast.failedToCreateProduct"),
+                  description:
+                    error.message || t("toast.failedToCreateProduct"),
                   variant: "destructive",
                 });
               } finally {
@@ -852,9 +839,13 @@ export default function SellerProducts() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("product.deleteProductTitle")}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("product.deleteProductTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("product.deleteProductDescription", { name: productToDelete?.name })}
+              {t("product.deleteProductDescription", {
+                name: productToDelete?.name,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -907,10 +898,10 @@ function ProductCard({
     parseFloat(product.originalPrice) > parseFloat(product.price);
   const discountPercent = isOnSale
     ? Math.round(
-      ((parseFloat(product.originalPrice!) - parseFloat(product.price)) /
-        parseFloat(product.originalPrice!)) *
-      100
-    )
+        ((parseFloat(product.originalPrice!) - parseFloat(product.price)) /
+          parseFloat(product.originalPrice!)) *
+          100
+      )
     : 0;
 
   return (
@@ -989,18 +980,19 @@ function ProductCard({
             <div>
               <span className="text-gray-600">{t("product.stock.label")}</span>
               <span
-                className={`ml-1 px-2 py-1 rounded text-xs ${product.stock > 10
+                className={`ml-1 px-2 py-1 rounded text-xs ${
+                  product.stock > 10
                     ? "bg-green-100 text-green-800"
                     : product.stock > 0
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-red-100 text-red-800"
+                }`}
               >
                 {product.stock > 10
                   ? "A stock"
                   : product.stock > 0
-                    ? "Low stock"
-                    : "Rupture"}{" "}
+                  ? "Low stock"
+                  : "Rupture"}{" "}
                 {product.stock} units
               </span>
             </div>
@@ -1017,8 +1009,9 @@ function ProductCard({
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  className={`h-3 w-3 ${i < Math.floor(product.rating) ? "fill-current" : ""
-                    }`}
+                  className={`h-3 w-3 ${
+                    i < Math.floor(product.rating) ? "fill-current" : ""
+                  }`}
                 />
               ))}
             </div>
@@ -1128,10 +1121,11 @@ function ProductTableRow({
       </td>
       <td className="py-3 px-4">
         <Badge
-          className={`px-2 py-1 text-xs rounded-full ${product.status === "active"
+          className={`px-2 py-1 text-xs rounded-full ${
+            product.status === "active"
               ? "bg-green-100 text-green-800"
               : "bg-gray-100 text-gray-800"
-            }`}
+          }`}
         >
           {product.status === "active" ? "Active" : "Inactive"}
         </Badge>
@@ -1174,224 +1168,6 @@ function ProductTableRow({
     </tr>
   );
 }
-
-// Product Preview Component - Shows how product appears to customers
-// function ProductPreview({
-//   product,
-//   categories,
-// }: {
-//   product: Product;
-//   categories: any[];
-// }) {
-//   const [currentLanguage, setCurrentLanguage] = useState<"en" | "fr" | "ar">(
-//     "en"
-//   );
-//   const category = categories.find((c) => c.id === product.categoryId);
-//   const SUPPORTED_LANGS = ["en", "fr", "ar"] as const;
-
-//   const renderStars = (rating: number) => {
-//     return [...Array(5)].map((_, i) => (
-//       <Star
-//         key={i}
-//         className={`h-4 w-4 ${
-//           i < Math.floor(rating)
-//             ? "fill-yellow-400 text-yellow-400"
-//             : "text-gray-300"
-//         }`}
-//       />
-//     ));
-//   };
-
-//   return (
-//     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4">
-//       {/* Product Images */}
-//       <div className="space-y-4">
-//         <div className="aspect-square bg-white rounded-lg shadow-sm overflow-hidden border">
-//           {product.images?.[0] ? (
-//             <img
-//               src={product.images[0]}
-//               alt={product.name}
-//               className="w-full h-full object-cover"
-//             />
-//           ) : (
-//             <div className="w-full h-full flex items-center justify-center bg-gray-100">
-//               <div className="text-center">
-//                 <Package className="h-16 w-16 text-gray-400 mx-auto mb-2" />
-//                 <p className="text-gray-500">No image available</p>
-//               </div>
-//             </div>
-//           )}
-//         </div>
-
-//         {/* Thumbnail Gallery */}
-//         {product.images && product.images.length > 1 && (
-//           <div className="grid grid-cols-4 gap-2">
-//             {product.images.slice(1, 5).map((image: string, index: number) => (
-//               <div
-//                 key={index}
-//                 className="aspect-square bg-white rounded-lg shadow-sm overflow-hidden border"
-//               >
-//                 <img
-//                   src={image}
-//                   alt={`${product.name} ${index + 2}`}
-//                   className="w-full h-full object-cover"
-//                 />
-//               </div>
-//             ))}
-//           </div>
-//         )}
-//       </div>
-
-//       {/* Product Info */}
-//       <div className="space-y-6">
-//         {/* Language Selection Tabs */}
-//         <div className="mb-6">
-//           <div className="flex items-center gap-2 mb-4">
-//             <label className="text-sm font-medium">Language:</label>
-//             <div className="flex bg-gray-100 rounded-lg p-1">
-//               {SUPPORTED_LANGS.map((lang) => {
-//                 const langLabels = {
-//                   en: "English",
-//                   fr: "Français",
-//                   ar: "العربية",
-//                 };
-//                 return (
-//                   <button
-//                     key={lang}
-//                     type="button"
-//                     onClick={() => setCurrentLanguage(lang)}
-//                     className={`px-3 py-1 rounded text-sm font-medium ${
-//                       currentLanguage === lang
-//                         ? "bg-white shadow-sm"
-//                         : "text-gray-600"
-//                     }`}
-//                   >
-//                     {langLabels[lang]}
-//                   </button>
-//                 );
-//               })}
-//             </div>
-//           </div>
-//         </div>
-
-//         <div>
-//           <h1
-//             className="text-2xl font-bold text-gray-900 mb-2"
-//             dir={currentLanguage === "ar" ? "rtl" : "ltr"}
-//           >
-//             {product.translations?.[currentLanguage]?.name ||
-//               product.name ||
-//               "No name available"}
-//           </h1>
-//           <p className="text-gray-600">
-//             • {category?.name || "Uncategorized"}
-//             <br /> • SKU: {product.sku} <br />• Brand: {product.brand}
-//           </p>
-//         </div>
-
-//         {/* Rating */}
-//         <div className="flex items-center gap-3">
-//           <div className="flex items-center">
-//             {renderStars(product.rating || 0)}
-//           </div>
-//           <span className="text-sm text-gray-600">
-//             {product.rating || 0} ({product.reviewCount || 0} reviews)
-//           </span>
-//         </div>
-
-//         {/* Price */}
-//         <div className="flex items-center gap-3">
-//           <span className="text-2xl font-bold text-primary-600">
-//             {product.price} AND
-//           </span>
-//           {product.originalPrice && (
-//             <span className="text-lg text-gray-500 line-through">
-//               {product.originalPrice} AND
-//             </span>
-//           )}
-//         </div>
-
-//         {/* Stock Status */}
-//         <div className="flex items-center gap-2">
-//           <Badge
-//             className={`${
-//               product.stock > 10
-//                 ? "bg-green-100 text-green-800"
-//                 : product.stock > 0
-//                 ? "bg-yellow-100 text-yellow-800"
-//                 : "bg-red-100 text-red-800"
-//             }`}
-//           >
-//             {product.stock > 10
-//               ? "In Stock"
-//               : product.stock > 0
-//               ? "Low Stock"
-//               : "Out of Stock"}
-//           </Badge>
-//           <span className="text-sm text-gray-600">
-//             {product.stock} units available
-//           </span>
-//         </div>
-
-//         {/* Multilingual Description */}
-//         <div>
-//           <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
-//           <div
-//             className="text-gray-700 space-y-4"
-//             dir={currentLanguage === "ar" ? "rtl" : "ltr"}
-//           >
-//             <div className="prose prose-sm max-w-none">
-//               <div
-//                 dangerouslySetInnerHTML={{
-//                   __html:
-//                     product.translations?.[currentLanguage]?.description ||
-//                     "No description available",
-//                 }}
-//               />
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Multilingual Highlights */}
-//         {product.translations?.[currentLanguage]?.highlights && (
-//           <div>
-//             <h3 className="font-semibold text-gray-900 mb-2">Key Features</h3>
-//             <div
-//               className="text-gray-700"
-//               dir={currentLanguage === "ar" ? "rtl" : "ltr"}
-//             >
-//               <div className="prose prose-sm max-w-none">
-//                 <div
-//                   dangerouslySetInnerHTML={{
-//                     __html: product.translations[currentLanguage].highlights,
-//                   }}
-//                 />
-//               </div>
-//             </div>
-//           </div>
-//         )}
-
-//         {/* Action Buttons - Customer View */}
-//         <div className="flex gap-4">
-//           <Button size="lg" className="flex-1" disabled={product.stock === 0}>
-//             <ShoppingCart className="h-5 w-5 mr-2" />
-//             Add to Cart
-//           </Button>
-//           <Button size="lg" variant="outline">
-//             <Heart className="h-5 w-5" />
-//           </Button>
-//         </div>
-
-//         {/* Vendor Info */}
-//         <Card className="p-4">
-//           <h3 className="font-semibold text-gray-900 mb-2">Sold by</h3>
-//           <p className="text-gray-700">{product.vendorName || "Your Store"}</p>
-//         </Card>
-//       </div>
-//     </div>
-//   );
-// }
-
 function ProductPreview({
   product,
   categories,
@@ -1414,10 +1190,11 @@ function ProductPreview({
     return [...Array(5)].map((_, i) => (
       <Star
         key={i}
-        className={`h-4 w-4 ${i < Math.floor(rating)
+        className={`h-4 w-4 ${
+          i < Math.floor(rating)
             ? "fill-yellow-400 text-yellow-400"
             : "text-gray-300"
-          }`}
+        }`}
       />
     ));
   };
@@ -1459,9 +1236,10 @@ function ProductPreview({
                   key={index}
                   onClick={() => setSelectedImageIndex(index)}
                   className={`aspect-square rounded-md overflow-hidden border-2 transition-all duration-200 
-                    ${selectedImageIndex === index
-                      ? "border-blue-500 scale-105"
-                      : "border-transparent hover:border-gray-300"
+                    ${
+                      selectedImageIndex === index
+                        ? "border-blue-500 scale-105"
+                        : "border-transparent hover:border-gray-300"
                     }`}
                 >
                   <img
@@ -1481,7 +1259,9 @@ function ProductPreview({
         {/* Language Tabs */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <label className="text-sm font-medium">{t("common.language")}</label>
+            <label className="text-sm font-medium">
+              {t("common.language")}
+            </label>
             <div className="flex bg-gray-100 rounded-lg p-1">
               {SUPPORTED_LANGS.map((lang) => {
                 const langLabels = {
@@ -1494,10 +1274,11 @@ function ProductPreview({
                     key={lang}
                     type="button"
                     onClick={() => setCurrentLanguage(lang)}
-                    className={`px-3 py-1 rounded text-sm font-medium transition-all ${currentLanguage === lang
+                    className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                      currentLanguage === lang
                         ? "bg-white shadow-sm"
                         : "text-gray-600 hover:text-gray-800"
-                      }`}
+                    }`}
                   >
                     {langLabels[lang]}
                   </button>
@@ -1509,125 +1290,130 @@ function ProductPreview({
 
         {/* Product Name & Basic Info */}
         <div>
-  <h1
-    className="text-2xl font-bold text-gray-900 mb-2"
-    dir={currentLanguage === "ar" ? "rtl" : "ltr"}
-  >
-    {product.translations?.[currentLanguage]?.name ||
-      product.name ||
-      t("product.noNameAvailable")}
-  </h1>
+          <h1
+            className="text-2xl font-bold text-gray-900 mb-2"
+            dir={currentLanguage === "ar" ? "rtl" : "ltr"}
+          >
+            {product.translations?.[currentLanguage]?.name ||
+              product.name ||
+              t("product.noNameAvailable")}
+          </h1>
 
-<p className="text-gray-600">
-  • {category?.name || t("product.uncategorized")}
-  <br /> • SKU: {product.sku} <br />• {t("product.brand")}: {product.brand}
-</p>
-</div>
+          <p className="text-gray-600">
+            • {category?.name || t("product.uncategorized")}
+            <br /> • SKU: {product.sku} <br />• {t("product.brand")}:{" "}
+            {product.brand}
+          </p>
+        </div>
 
-    {/* Rating */ }
-    < div className = "flex items-center gap-3" >
+        {/* Rating */}
+        <div className="flex items-center gap-3">
           <div className="flex items-center">
             {renderStars(product.rating || 0)}
           </div>
           <span className="text-sm text-gray-600">
-  {product.rating || 0} ({product.reviewCount || 0} {t("product.reviews")})
-</span>
-        </div >
+            {product.rating || 0} ({product.reviewCount || 0}{" "}
+            {t("product.reviews")})
+          </span>
+        </div>
 
-    {/* Price */ }
-    < div className = "flex items-center gap-3" >
-      <span className="text-2xl font-bold text-blue-600">
-        {product.price} AND
-      </span>
-  {
-    product.originalPrice && (
-      <span className="text-lg text-gray-500 line-through">
-        {product.originalPrice} AND
-      </span>
-    )
-  }
-        </div >
+        {/* Price */}
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-bold text-blue-600">
+            {product.price} AND
+          </span>
+          {product.originalPrice && (
+            <span className="text-lg text-gray-500 line-through">
+              {product.originalPrice} AND
+            </span>
+          )}
+        </div>
 
-    {/* Stock */ }
-    < div className = "flex items-center gap-2" >
+        {/* Stock */}
+        <div className="flex items-center gap-2">
           <Badge
-  className={`${
-    product.stock > 10
-      ? "bg-green-100 text-green-800"
-      : product.stock > 0
-        ? "bg-yellow-100 text-yellow-800"
-        : "bg-red-100 text-red-800"
-  }`}
->
-  {product.stock > 10
-    ? t("product.inStock")
-    : product.stock > 0
-      ? t("product.lowStock")
-      : t("product.outOfStock")}
-</Badge>
+            className={`${
+              product.stock > 10
+                ? "bg-green-100 text-green-800"
+                : product.stock > 0
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {product.stock > 10
+              ? t("product.inStock")
+              : product.stock > 0
+              ? t("product.lowStock")
+              : t("product.outOfStock")}
+          </Badge>
           <span className="text-sm text-gray-600">
-  {product.stock} {t("product.unitsAvailable")}
-</span>
-        </div >
+            {product.stock} {t("product.unitsAvailable")}
+          </span>
+        </div>
 
-    {/* Description */ }
-    < div >
-          <h3 className="font-semibold text-gray-900 mb-2">{t("product.description")}</h3>
+        {/* Description */}
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-2">
+            {t("product.description")}
+          </h3>
           <div
             className="text-gray-700 space-y-4"
             dir={currentLanguage === "ar" ? "rtl" : "ltr"}
           >
-           <div className="prose prose-sm max-w-none">
-  <div
-    dangerouslySetInnerHTML={{
-      __html:
-        product.translations?.[currentLanguage]?.description ||
-        t("product.noDescriptionAvailable"),
-    }}
-  />
-</div>
-          </div>
-        </div >
-
-    {/* Highlights */ }
-  {
-    product.translations?.[currentLanguage]?.highlights && (
-      <div>
-        <h3 className="font-semibold text-gray-900 mb-2">{t("product.keyFeatures")}</h3>
-        <div
-          className="text-gray-700"
-          dir={currentLanguage === "ar" ? "rtl" : "ltr"}
-        >
-          <div className="prose prose-sm max-w-none">
-            <div
-              dangerouslySetInnerHTML={{
-                __html: product.translations[currentLanguage].highlights,
-              }}
-            />
+            <div className="prose prose-sm max-w-none">
+              <div
+                dangerouslySetInnerHTML={{
+                  __html:
+                    product.translations?.[currentLanguage]?.description ||
+                    t("product.noDescriptionAvailable"),
+                }}
+              />
+            </div>
           </div>
         </div>
+
+        {/* Highlights */}
+        {product.translations?.[currentLanguage]?.highlights && (
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-2">
+              {t("product.keyFeatures")}
+            </h3>
+            <div
+              className="text-gray-700"
+              dir={currentLanguage === "ar" ? "rtl" : "ltr"}
+            >
+              <div className="prose prose-sm max-w-none">
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: product.translations[currentLanguage].highlights,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex gap-4">
+          <Button size="lg" className="flex-1" disabled={product.stock === 0}>
+            <ShoppingCart className="h-5 w-5 mr-2" />
+            {t("product.addToCart")}
+          </Button>
+          <Button size="lg" variant="outline">
+            <Heart className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Vendor Info */}
+        <Card className="p-4">
+          <h3 className="font-semibold text-gray-900 mb-2">
+            {t("product.soldBy")}
+          </h3>
+          <p className="text-gray-700">
+            {product.vendorName || t("product.yourStore")}
+          </p>
+        </Card>
       </div>
-    )
-  }
-
-  {/* Buttons */ }
-  <div className="flex gap-4">
-
-    <Button size="lg" className="flex-1" disabled={product.stock === 0}>
-      <ShoppingCart className="h-5 w-5 mr-2" />
-      {t("product.addToCart")}
-    </Button>
-    <Button size="lg" variant="outline">
-      <Heart className="h-5 w-5" />
-    </Button>
-  </div>
-
-  {/* Vendor Info */ }
-  <Card className="p-4">
-    <h3 className="font-semibold text-gray-900 mb-2">{t("product.soldBy")}</h3>
-    <p className="text-gray-700">{product.vendorName || t("product.yourStore")}</p>
-  </Card>
-      </div >
-    </div >
+    </div>
   );
 }

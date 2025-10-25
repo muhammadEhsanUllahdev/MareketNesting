@@ -17,64 +17,65 @@ export default function ClientNotifications() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
 
-const markAsReadMutation = useMutation({
-  mutationFn: async (notificationId: string) => {
-    const res = await fetch(`/api/notifications/${notificationId}/read`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-    });
+  const markAsReadMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const res = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      });
 
-    if (!res.ok) {
-      throw new Error(t("notifications.error.failedToMarkRead"));
-    }
-    return res.json();
-  },
-  onSuccess: (data, notificationId) => {
-    queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      if (!res.ok) {
+        throw new Error(t("notifications.error.failedToMarkRead"));
+      }
+      return res.json();
+    },
+    onSuccess: (data, notificationId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
 
-    toast({
-      title: t("notifications.readTitle"),
-      description: t("notifications.markedAsRead", { id: notificationId }),
-    });
-  },
-  onError: (error: any) => {
-    toast({
-      title: t("notifications.error.title"),
-      description: error.message || t("notifications.error.message"),
-      variant: "destructive",
-    });
-  },
-});
+      toast({
+        title: t("notifications.readTitle"),
+        description: t("notifications.markedAsRead", { id: notificationId }),
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: t("notifications.error.title"),
+        description: error.message || t("notifications.error.message"),
+        variant: "destructive",
+      });
+    },
+  });
 
-const deleteNotificationMutation = useMutation({
-  mutationFn: async (notificationId: string) => {
-    const res = await fetch(`/api/notifications/${notificationId}/delete`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-    });
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const res = await fetch(`/api/notifications/${notificationId}/delete`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
 
-    if (!res.ok) {
-      throw new Error(t("notifications.error.failedToDelete"));
-    }
-    return res.json();
-  },
-  onSuccess: (data, notificationId) => {
-    queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      if (!res.ok) {
+        throw new Error(t("notifications.error.failedToDelete"));
+      }
+      return res.json();
+    },
+    onSuccess: (data, notificationId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
 
-    toast({
-      title: t("notifications.deletedTitle"),
-      description: t("notifications.deletedSuccessfully", { id: notificationId }),
-    });
-  },
-  onError: (error: any) => {
-    toast({
-      title: t("notifications.error.title"),
-      description: error.message || t("notifications.error.message"),
-      variant: "destructive",
-    });
-  },
-});
-
+      toast({
+        title: t("notifications.deletedTitle"),
+        description: t("notifications.deletedSuccessfully", {
+          id: notificationId,
+        }),
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: t("notifications.error.title"),
+        description: error.message || t("notifications.error.message"),
+        variant: "destructive",
+      });
+    },
+  });
 
   const filteredNotifications = notifications.filter((n) => {
     if (filter === "all") return true;
@@ -134,12 +135,12 @@ const deleteNotificationMutation = useMutation({
               <div
                 key={notification.id}
                 className={`flex items-start p-3 rounded-lg 
-    ${
-      notification.isRead
-        ? "bg-gray-100 text-gray-600"
-        : "bg-blue-50 text-blue-800"
-    }
-  `}
+               ${
+                 notification.isRead
+                   ? "bg-gray-100 text-gray-600"
+                   : "bg-blue-50 text-blue-800"
+               }
+               `}
                 data-testid={`notification-${notification.id}`}
               >
                 <div className="flex-shrink-0 mr-3">

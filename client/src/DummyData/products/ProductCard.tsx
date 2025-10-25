@@ -150,8 +150,8 @@ const ProductCard = ({
     mutationFn: () =>
       apiRequest(
         "POST", // method
-        `/api/cart/${product.id}`, // URL
-        { quantity: 1 } // data (will be JSON.stringified inside apiRequest)
+        `/api/cart/${product.id}`,
+        { quantity: 1 }
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });

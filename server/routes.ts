@@ -3,6 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { setupAuth, hashPassword, comparePasswords } from "./auth";
+import authRouter from "./auth";
 import { storage } from "./storage";
 import { db } from "./db";
 import multer from "multer";
@@ -31,14 +32,18 @@ import {
   shippingZones,
   shippingZoneCarriers,
   payments,
+  productTranslations,
+  blacklistedProducts,
 } from "@shared/schema";
 import { z } from "zod";
-import { eq, desc, and, isNull, inArray, sql } from "drizzle-orm";
+import { eq, desc, and, isNull, inArray, sql, ilike } from "drizzle-orm";
 import Stripe from "stripe";
 import { emailService } from "./emailService";
 import createStripePaymentRouter from "./services/stripe-payment-service";
 import session from "express-session";
 import { create } from "domain";
+
+
 
 // Global Socket.IO server instance
 let io: SocketIOServer;
@@ -81,6 +86,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
 
+  // Mount auth router at /api (includes login/logout routes)
+  app.use("/api", authRouter);
+
   // Serve uploaded images statically
   app.use("/uploads", express.static(uploadsDir));
 
@@ -107,10 +115,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to upload images" });
     }
   });
-
+  
   // Categories API
   app.get("/api/categories", async (req, res) => {
-    const lang = (req.query.lang as string) || "en";
+    const lang = req.userLanguage || "en";
     const excludeSuper = req.query.excludeSuper === "true";
     try {
       const categories = await storage.getCategoriesWithTranslations(lang);
@@ -171,8 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch category features" });
     }
   });
-
-  // Admin Categories Management API
+  // Admin Categories API
   app.get("/api/admin/categories", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== "admin") {
       return res.sendStatus(401);
@@ -183,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Database not available" });
       }
 
-      // Fetch categories with relations (exclude soft deleted)
+      // Fetch categories (exclude soft deleted)
       const categoriesWithData = await db.query.categories.findMany({
         where: isNull(categories.deletedAt),
         with: {
@@ -192,57 +199,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      // Calculate subcategory count and product count for each category
-      const categoriesWithCount = await Promise.all(
-        categoriesWithData.map(async (category) => {
-          const subcategoryCount = categoriesWithData.filter(
-            (subcat) => subcat.parentId === category.id
-          ).length;
+      // Precompute subcategory counts
+      const subcategoryCountMap: Record<string, number> = {};
+      for (const cat of categoriesWithData) {
+        if (cat.parentId) {
+          subcategoryCountMap[cat.parentId] =
+            (subcategoryCountMap[cat.parentId] || 0) + 1;
+        }
+      }
 
-          let productCount = 0;
-
-          if (category.type === "super") {
-            // For supercategories, count products in all child categories
-            const childCategories = categoriesWithData.filter(
-              (child) => child.parentId === category.id
-            );
-
-            if (childCategories.length > 0) {
-              const childCategoryIds = childCategories.map((child) => child.id);
-              const productCountResult = await db
-                .select({ count: sql<number>`COUNT(*)::int` })
-                .from(products)
-                .where(
-                  and(
-                    inArray(products.categoryId, childCategoryIds),
-                    eq(products.isActive, true),
-                    isNull(products.deletedAt)
-                  )
-                );
-              productCount = productCountResult[0]?.count || 0;
-            }
-          } else if (category.type === "standard") {
-            // For standard categories, count products directly assigned to this category
-            const productCountResult = await db
-              .select({ count: sql<number>`COUNT(*)::int` })
-              .from(products)
-              .where(
-                and(
-                  eq(products.categoryId, category.id),
-                  eq(products.isActive, true),
-                  isNull(products.deletedAt)
-                )
-              );
-            productCount = productCountResult[0]?.count || 0;
-          }
-
-          return {
-            ...category,
-            subcategoryCount,
-            productCount,
-          };
+      // Get all active products in one query
+      const allProducts = await db
+        .select({
+          id: products.id,
+          categoryId: products.categoryId,
         })
-      );
+        .from(products)
+        .where(and(eq(products.isActive, true), isNull(products.deletedAt)));
+
+      // Build a map of product counts per category
+      const productCountMap: Record<string, number> = {};
+      for (const p of allProducts) {
+        productCountMap[p.categoryId] =
+          (productCountMap[p.categoryId] || 0) + 1;
+      }
+
+      // Now map categories with counts
+      const categoriesWithCount = categoriesWithData.map((category) => {
+        let productCount = 0;
+
+        if (category.type === "super") {
+          // Include products in all subcategories
+          const childIds = categoriesWithData
+            .filter((child) => child.parentId === category.id)
+            .map((child) => child.id);
+          productCount = childIds.reduce(
+            (sum, id) => sum + (productCountMap[id] || 0),
+            0
+          );
+        } else if (category.type === "standard") {
+          productCount = productCountMap[category.id] || 0;
+        }
+
+        return {
+          ...category,
+          subcategoryCount: subcategoryCountMap[category.id] || 0,
+          productCount,
+        };
+      });
 
       res.json(categoriesWithCount);
     } catch (error) {
@@ -805,16 +809,324 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Products API
-  app.get("/api/products", async (req, res) => {
+  // app.get("/api/products", async (req, res) => {
+  //   try {
+  //     // Return all products with all translations for frontend filtering
+  //     const products = await storage.getAllProductsWithTranslations();
+  //     res.json(products);
+  //   } catch (error) {
+  //     console.error("Error fetching products:", error);
+  //     res.status(500).json({ error: "Failed to fetch products" });
+  //   }
+  // });
+
+  // Blacklisted Products API
+
+  app.get("/api/blacklist", async (req, res) => {
     try {
-      // Return all products with all translations for frontend filtering
-      const products = await storage.getAllProductsWithTranslations();
-      res.json(products);
+      const result = await db
+        .select({
+          id: blacklistedProducts.id,
+          productId: blacklistedProducts.productId,
+          categoryId: blacklistedProducts.categoryId,
+          reason: blacklistedProducts.reason,
+          status: blacklistedProducts.status,
+          createdAt: blacklistedProducts.createdAt,
+          addedBy: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+          productName: sql<string>`COALESCE(${productTranslations.name}, 'Untitled Product')`,
+          categoryName: sql<string>`COALESCE(${categoryTranslations.name}, 'No Category')`,
+        })
+        .from(blacklistedProducts)
+        .leftJoin(products, eq(products.id, blacklistedProducts.productId))
+        .leftJoin(users, eq(users.id, blacklistedProducts.addedBy))
+        .leftJoin(categories, eq(categories.id, blacklistedProducts.categoryId))
+        .leftJoin(
+          categoryTranslations,
+          and(
+            eq(categoryTranslations.categoryId, categories.id),
+            eq(categoryTranslations.language, "en")
+          )
+        )
+        .leftJoin(
+          productTranslations,
+          and(
+            eq(productTranslations.productId, products.id),
+            eq(productTranslations.language, "en")
+          )
+        )
+        .orderBy(desc(blacklistedProducts.createdAt));
+
+      res.json(result);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("❌ Error fetching blacklist:", error);
+      res.status(500).json({ error: "Failed to fetch blacklist" });
+    }
+  });
+
+  // ✅ Add to blacklist
+  app.post("/api/blacklist", async (req, res) => {
+    try {
+      const { productId, categoryId, reason, status } = req.body;
+      const addedBy = req.user?.id;
+
+      if (!req.isAuthenticated() || !addedBy) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!productId || !reason || !status) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      await db.insert(blacklistedProducts).values({
+        productId,
+        categoryId,
+        reason,
+        status,
+        addedBy,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("❌ Error adding to blacklist:", error);
+      res.status(500).json({ error: "Failed to add to blacklist" });
+    }
+  });
+
+  // ✅ Delete / remove from blacklist
+  app.delete("/api/blacklist/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await db
+        .delete(blacklistedProducts)
+        .where(eq(blacklistedProducts.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("❌ Error removing from blacklist:", error);
+      res.status(500).json({ error: "Failed to remove from blacklist" });
+    }
+  });
+
+  // ✅ Fetch categories (for dropdown)
+  app.get("/api/blacklist/categories", async (req, res) => {
+    try {
+      const result = await db
+        .select({
+          id: categories.id,
+          name: categoryTranslations.name,
+        })
+        .from(categories)
+        .leftJoin(
+          categoryTranslations,
+          and(
+            eq(categoryTranslations.categoryId, categories.id),
+            eq(categoryTranslations.language, "en")
+          )
+        );
+      res.json(result);
+    } catch (error) {
+      console.error("❌ Error fetching categories:", error);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  // ✅ Fetch products by category (for second dropdown)
+  app.get("/api/blacklist/products", async (req, res) => {
+    try {
+      const categoryId = req.query.categoryId;
+      if (!categoryId)
+        return res.status(400).json({ error: "categoryId is required" });
+
+      const result = await db
+        .select({
+          id: products.id,
+          name: sql<string>`COALESCE(${productTranslations.name}, 'Untitled Product')`,
+        })
+        .from(products)
+        .leftJoin(
+          productTranslations,
+          and(
+            eq(productTranslations.productId, products.id),
+            eq(productTranslations.language, "en")
+          )
+        )
+        .where(
+          and(eq(products.categoryId, categoryId), eq(products.isActive, true))
+        );
+
+      res.json(result);
+    } catch (error) {
+      console.error("❌ Error fetching products by category:", error);
       res.status(500).json({ error: "Failed to fetch products" });
     }
   });
+
+  // search endpoint
+  app.get("/api/search", async (req, res) => {
+    try {
+      const q = (req.query.q as string)?.trim();
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      if (!q) return res.json({ suggestions: [], results: [] });
+
+      const searchTerm = `%${q}%`;
+
+      // --- 🔍 1. Search Product Names (Translations)
+      const productResults = await db
+        .select({
+          id: products.id,
+          name: productTranslations.name,
+          type: sql`'product'`,
+        })
+        .from(products)
+        .leftJoin(
+          productTranslations,
+          eq(productTranslations.productId, products.id)
+        )
+        .where(ilike(productTranslations.name, searchTerm))
+        .limit(5);
+
+      // --- 🏷️ 2. Search Categories
+      const categoryResults = await db
+        .select({
+          id: categories.id,
+          name: categoryTranslations.name,
+          type: sql`'category'`,
+        })
+        .from(categories)
+        .leftJoin(
+          categoryTranslations,
+          eq(categoryTranslations.categoryId, categories.id)
+        )
+        .where(ilike(categoryTranslations.name, searchTerm))
+        .limit(3);
+
+      // --- 🏭 3. Search Brands
+      const brandResults = await db
+        .selectDistinct({
+          name: products.brand,
+          type: sql`'brand'`,
+        })
+        .from(products)
+        .where(ilike(products.brand, searchTerm))
+        .limit(3);
+
+      // --- 🧠 Combine and deduplicate
+      const suggestions = [
+        ...productResults,
+        ...categoryResults,
+        ...brandResults.filter((b) => b.name),
+      ].slice(0, limit);
+
+      res.json({
+        query: q,
+        suggestions,
+      });
+    } catch (error) {
+      console.error("❌ Error in /api/search:", error);
+      res.status(500).json({ error: "Failed to fetch search suggestions" });
+    }
+  });
+
+  app.get("/api/search-products", async (req, res) => {
+    try {
+      const queryParam = req.query.query;
+      const query = Array.isArray(queryParam)
+        ? queryParam[0].trim()
+        : typeof queryParam === "string"
+        ? queryParam.trim()
+        : "";
+
+      if (!query) return res.json({ items: [], total: 0 });
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const category = req.query.category as string;
+      const filters = {
+        minPrice: req.query.minPrice
+          ? parseFloat(req.query.minPrice as string)
+          : undefined,
+        maxPrice: req.query.maxPrice
+          ? parseFloat(req.query.maxPrice as string)
+          : undefined,
+        sort: req.query.sort as string,
+        freeShipping: req.query.freeShipping === "true",
+        availability: req.query.availability as string,
+        rating: req.query.rating
+          ? parseFloat(req.query.rating as string)
+          : undefined,
+      };
+
+      const result = await storage.getProductsBySearchQuery(
+        query,
+        filters,
+        category,
+        limit,
+        offset
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("❌ Error searching products:", error);
+      res.status(500).json({ error: "Failed to search products" });
+    }
+  });
+  // server/routes/products.ts
+
+  app.get("/api/products/featured", async (req, res) => {
+    try {
+      const result = await storage.getFeaturedProductsWithTranslations();
+      res.json(result);
+    } catch (error) {
+      console.error("❌ Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  app.get("/api/products", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 15;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const category = req.query.category as string;
+
+      const filters = {
+        minPrice: req.query.minPrice ? Number(req.query.minPrice) : null,
+        maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : null,
+        rating: req.query.rating ? Number(req.query.rating) : null,
+        availability: req.query.availability as string,
+        sort: req.query.sort as string,
+        brand: req.query.brand as string,
+      };
+
+      const result = await storage.getAllProductsWithTranslations(
+        limit,
+        offset,
+        category,
+        filters
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("❌ Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  // app.get("/api/products", async (req, res) => {
+  //   try {
+  //     const limit = parseInt(req.query.limit as string) || 15;
+  //     const offset = parseInt(req.query.offset as string) || 0;
+  //     const category = req.query.category as string;
+
+  //     const result = await storage.getAllProductsWithTranslations(
+  //       limit,
+  //       offset,
+  //       category
+  //     );
+  //     res.json(result);
+  //   } catch (error) {
+  //     console.error("❌ Error fetching products:", error);
+  //     res.status(500).json({ error: "Failed to fetch products" });
+  //   }
+  // });
 
   app.get("/api/products/:id", async (req, res) => {
     const lang = (req.query.lang as string) || "en";
@@ -1013,6 +1325,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch product" });
     }
   });
+
+  app.get("/api/popular-products", async (req, res) => {
+    try {
+      const sellerId = (req.query.sellerId as string) || undefined;
+      const lang = ((req.query.lang as string) || "en").split("-")[0].toLowerCase();
+      const limit = parseInt((req.query.limit as string) || "5", 10);
+
+      console.log("GET /api/popular-products -> delegating to storage", { sellerId, lang, limit });
+
+      const popular = await storage.getPopularProductsWithGrowth({ sellerId, lang, limit });
+
+      return res.json(popular);
+    } catch (error) {
+      console.error("Error fetching popular products (route):", error);
+      return res.status(500).json({ success: false, message: "Failed to fetch popular products" });
+    }
+  });
+
 
   // Adjust product stock
   app.patch("/api/seller/products/:id/adjust-stock", async (req, res) => {
@@ -1448,20 +1778,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
- app.get("/api/admin/stores/stats", async (req, res) => {
-  if (!req.isAuthenticated() || req.user?.role !== "admin") {
-    return res.sendStatus(401);
-  }
+  app.get("/api/admin/stores/stats", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== "admin") {
+      return res.sendStatus(401);
+    }
 
-  try {
-    const stats = await storage.getStoreStats();
-    res.json(stats);
-  } catch (error) {
-    console.error("Error fetching store stats:", error);
-    res.status(500).json({ error: "Failed to fetch store stats" });
-  }
-});
-
+    try {
+      const stats = await storage.getStoreStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching store stats:", error);
+      res.status(500).json({ error: "Failed to fetch store stats" });
+    }
+  });
 
   app.get("/api/admin/stores/:id", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== "admin") {
@@ -1676,20 +2005,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...productData
       } = req.body;
 
-      // Use multilingual translations if provided, fallback to single language for backward compatibility
       const productTranslations = translations || {
         en: { name, description, shortDescription },
       };
 
       // Update the product with multilingual support
-      const product = await storage.updateProductWithDetails(productId, {
-        ...productData,
-        categoryId: categoryId || productData.category,
-        images: req.body.images || [],
-        translations: productTranslations,
-        specifications,
-        faqs,
-      });
+      const product = await storage.updateProductWithDetails(
+        productId,
+        req.body.vendorId,
+        {
+          ...productData,
+          categoryId: categoryId || productData.category,
+          images: req.body.images || [],
+          translations: productTranslations,
+          specifications,
+          faqs,
+        }
+      );
 
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
@@ -2011,6 +2343,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { id } = req.params;
     const result = await storage.markShopTransactionsPaid(id);
     return res.json(result);
+  });
+
+  // Withdrawal API
+
+  app.get("/api/seller/withdrawals", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== "seller")
+      return res.sendStatus(401);
+    const sellerId = req.user.id;
+    const result = await storage.getSellerWithdrawals(sellerId);
+    res.json(result);
+  });
+
+  app.post("/api/seller/withdrawals/create", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== "seller")
+      return res.sendStatus(401);
+    const sellerId = req.user.id;
+    const { amount, bankAccountInfo } = req.body;
+    if (!amount || !bankAccountInfo)
+      return res.status(400).json({ error: "Invalid input" });
+
+    const result = await storage.createWithdrawalRequest(sellerId, {
+      amount,
+      bankAccountInfo,
+    });
+    res.status(201).json(result);
+  });
+
+  app.get("/api/admin/withdrawals", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== "admin")
+      return res.sendStatus(401);
+    const result = await storage.getAllWithdrawals();
+    res.json(result);
+  });
+
+  app.patch("/api/admin/withdrawals/:id/status", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== "admin")
+      return res.sendStatus(401);
+    const { id } = req.params;
+    const { status, adminNotes } = req.body;
+    if (!["approved", "rejected", "processed"].includes(status))
+      return res.status(400).json({ error: "Invalid status" });
+
+    const result = await storage.updateWithdrawalStatus(id, status, adminNotes);
+    res.json(result);
   });
 
   // Seller Profile API
@@ -2588,7 +2964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.sendStatus(401);
     const alerts = await storage.getStockAlertsBySellerId(
       req.user.id,
-      req.user.preferredLanguage ?? "en"
+      req.userLanguage
     );
     res.json(alerts);
   });
@@ -2852,6 +3228,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   }
   // });
 
+  // shipments Api's
+
+  app.get("/api/admin/shipments", async (req, res) => {
+    try {
+      const shipments = await storage.getShipments();
+      res.json(shipments);
+    } catch (error) {
+      console.error("❌ Error fetching shipments:", error);
+      res.status(500).json({ error: "Failed to fetch shipments" });
+    }
+  });
+
+  // 🟢 Create new shipment
+  app.post("/api/admin/shipments", async (req, res) => {
+    try {
+      const newShipment = await storage.createShipment({
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      res.status(201).json(newShipment);
+    } catch (error) {
+      console.error("❌ Error creating shipment:", error);
+      res.status(500).json({ error: "Failed to create shipment" });
+    }
+  });
+
+  // 🟢 Update shipment
+  app.put("/api/admin/shipments/:id", async (req, res) => {
+    try {
+      const updated = await storage.updateShipment(req.params.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("❌ Error updating shipment:", error);
+      res.status(500).json({ error: "Failed to update shipment" });
+    }
+  });
+
+  // 🟢 Delete shipment
+  app.delete("/api/admin/shipments/:id", async (req, res) => {
+    try {
+      await storage.deleteShipment(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("❌ Error deleting shipment:", error);
+      res.status(500).json({ error: "Failed to delete shipment" });
+    }
+  });
+
+  // 🟢 Fetch analytics
+  app.get("/api/admin/shipments/analytics", async (req, res) => {
+    try {
+      const analytics = await storage.getShipmentsAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error("❌ Error fetching analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
   app.get("/api/seller/transactions", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== "seller") {
       return res.sendStatus(401);
@@ -2894,20 +3330,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(
           and(
             eq(transactions.sellerId, sellerId),
-            eq(transactions.status, "completed")
+            eq(transactions.status, "paid")
           )
         )
         .orderBy(desc(transactions.createdAt));
+      // Calculate aggregates: total, monthly, daily and compare with previous periods
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfYesterday = new Date(startOfToday);
+      startOfYesterday.setDate(startOfYesterday.getDate() - 1);
 
-      const totalRevenue = rows.reduce(
-        (sum, t) => sum + parseFloat(t.amount),
-        0
-      );
+      const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+      let total = 0;
+      let monthly = 0;
+      let prevMonthly = 0;
+      let daily = 0;
+      let yesterday = 0;
+
+      for (const r of rows) {
+        const amt = parseFloat(r.amount) || 0;
+        const d = new Date(r.createdAt);
+        total += amt;
+
+        if (d >= startOfThisMonth) monthly += amt;
+        if (d >= startOfLastMonth && d <= endOfLastMonth) prevMonthly += amt;
+
+        if (d >= startOfToday) daily += amt;
+        if (d >= startOfYesterday && d < startOfToday) yesterday += amt;
+      }
+
+      const monthlyChangePercent = prevMonthly === 0 ? (monthly === 0 ? 0 : 100) : ((monthly - prevMonthly) / prevMonthly) * 100;
+      const dailyChangePercent = yesterday === 0 ? (daily === 0 ? 0 : 100) : ((daily - yesterday) / yesterday) * 100;
+
+      const fee = total * 0.05; // 5% cut from total amount
+      const netTotal = total - fee;
 
       res.json({
-        totalRevenue: totalRevenue.toFixed(2),
+        totalRevenue: total.toFixed(2),
         currency: rows[0]?.currency || "usd",
         revenue: rows,
+        monthlyRevenue: monthly.toFixed(2),
+        previousMonthlyRevenue: prevMonthly.toFixed(2),
+        monthlyChangePercent: Number(monthlyChangePercent.toFixed(2)),
+        dailyRevenue: daily.toFixed(2),
+        yesterdayRevenue: yesterday.toFixed(2),
+        dailyChangePercent: Number(dailyChangePercent.toFixed(2)),
+        fee: fee.toFixed(2),
+        netTotal: netTotal.toFixed(2),
       });
     } catch (error) {
       console.error("Error fetching revenue:", error);
@@ -3078,17 +3550,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   //   }
   // });
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-    apiVersion: "2025-08-27.basil",
-  });
+  // Conditionally initialize Stripe if the secret key is provided
+  if (process.env.STRIPE_SECRET_KEY) {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-08-27.basil",
+    });
 
-  app.use(
-    createStripePaymentRouter({
-      stripe,
-      // webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-      // dbClient: db,
-    })
-  );
+    app.use(
+      createStripePaymentRouter({
+        stripe,
+        // webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+        // dbClient: db,
+      })
+    );
+    console.log("✅ Stripe payment service initialized");
+  } else {
+    console.warn(
+      "⚠️  STRIPE_SECRET_KEY not found - payment functionality disabled"
+    );
+    // Add a fallback route that returns 503 for payment endpoints
+    app.post("/api/checkout/payment", (req, res) => {
+      res.status(503).json({
+        error:
+          "Payment service not configured. Please set STRIPE_SECRET_KEY to enable payments.",
+      });
+    });
+  }
   // app.post("/api/checkout/payment", async (req, res) => {
   //   console.log("💳 PaymentIntent request received", new Date().toISOString());
   //   if (!req.isAuthenticated() || req.user?.role !== "client") {
@@ -4329,7 +4816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendStatus(401);
       }
 
-      const orders = await storage.getSellerOrders(vendorId);
+      const orders = await storage.getSellerOrders(vendorId,req.userLanguage);
 
       res.json(orders);
     } catch (error) {
@@ -4337,6 +4824,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch seller orders" });
     }
   });
+
+//   app.get("/api/dashboard/seller/trend", async (req, res) => {
+//   const trend = [
+//     { month: "Jan", sales: 400000, orders: 210 },
+//     { month: "Feb", sales: 300000, orders: 240 },
+//     { month: "Mar", sales: 620000, orders: 310 },
+//     { month: "Apr", sales: 380000, orders: 200 },
+//     { month: "May", sales: 260000, orders: 180 },
+//     { month: "Jun", sales: 310000, orders: 210 },
+//     { month: "Jul", sales: 490000, orders: 270 },
+//     { month: "Aug", sales: 580000, orders: 290 },
+//     { month: "Sep", sales: 640000, orders: 330 },
+//     { month: "Oct", sales: 700000, orders: 310 },
+//     { month: "Nov", sales: 670000, orders: 320 },
+//     { month: "Dec", sales: 820000, orders: 380 },
+//   ];
+//   res.json(trend);
+// });
+
+app.put("/api/users/language", async (req, res) => {
+  try {
+    const { language } = req.body;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    await db
+      .update(users)
+      .set({ 
+        preferredLanguage: language,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating language preference:", error);
+    return res.status(500).json({ error: "Failed to update language preference" });
+  }
+});
+
+app.get("/api/dashboard/seller/trend", async (req, res) => {
+  try {
+    if (!req.isAuthenticated() || req.user?.role !== "seller") {
+      return res.sendStatus(401);
+    }
+    const vendorId = req.user.id;
+
+    if (!vendorId) {
+      return res.status(400).json({ error: "Missing vendorId" });
+    }
+
+    const trend = await storage.getSellerTrend(vendorId);
+    res.json(trend);
+  } catch (error) {
+    console.error("Error fetching sales trend:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
   // Routes for Packages
   app.get("/api/admin/packages", async (req, res) => {
@@ -4643,40 +5189,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  function safeLogout(req, res, next) {
+function safeLogout(req, res, next) {
+  try {
+    // Clear cookie regardless of session state
+    res.clearCookie("connect.sid", { path: "/" });
+
+    // Passport >= 0.6 logout signature
     if (typeof req.logout === "function") {
-      // Passport >=0.6 requires a callback
       req.logout((err) => {
-        if (err) {
-          console.error("Logout error:", err);
+        if (err) console.error("Logout error:", err);
+
+        if (req.session) {
+          req.session.destroy((err2) => {
+            if (err2) console.error("Session destroy error:", err2);
+            return res.redirect("/auth");
+          });
+        } else {
+          return res.redirect("/auth");
         }
-        res.redirect("/auth");
+      });
+    } else if (req.session) {
+      // Fallback for older Passport/session middleware
+      req.session.destroy((err) => {
+        if (err) console.error("Session destroy error:", err);
+        return res.redirect("/auth");
       });
     } else {
-      // fallback: just destroy session
-      req.session.destroy(() => {
-        res.redirect("/auth");
-      });
+      // No session present
+      return res.redirect("/auth");
     }
+  } catch (err) {
+    console.error("Safe logout caught exception:", err);
+    return res.redirect("/auth");
+  }
+}
+
+ 
+
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+
+  const errStr = String(err).toLowerCase();
+
+  // Handle DB/session errors gracefully
+  if (errStr.includes("too many clients") || errStr.includes("failed to deserialize")) {
+    return safeLogout(req, res, next);
   }
 
-  app.use((err, req, res, next) => {
-    console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
 
-    // If DB error, kill session and redirect to /auth
-    if (
-      String(err).includes("too many clients") ||
-      String(err).includes("Failed to deserialize")
-    ) {
-      // req.logout(() => {
-      //   res.redirect("/auth");
-      // });
-      return safeLogout(req, res, next);
-      return;
-    }
-
-    res.status(500).json({ error: "Internal Server Error" });
-  });
 
   // Create HTTP server and Socket.IO
   const httpServer = createServer(app);

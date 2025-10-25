@@ -29,13 +29,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { t } from "i18next";
-
+import { useTranslation } from "react-i18next";
 
 const ShippingZones = () => {
   const { zones, isLoadingZones, createZone, updateZone, deleteZone } =
     useZones();
   const { carriers, isLoadingCarriers } = useCarriers();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<any | null>(null);
@@ -121,13 +122,23 @@ const ShippingZones = () => {
       formData.selectedCarriers.length === 0
     ) {
       toast({
-  title: t("common.error"),
-  description: t("common.fillRequiredFields"),
-  variant: "destructive",
-});
+        title: t("common.error"),
+        description: t("common.fillRequiredFields"),
+        variant: "destructive",
+      });
 
       return;
     }
+
+    const formattedCities = formData.cities
+      .replace(/\s*,\s*/g, ",")
+      .trim()
+      .replace(/\s+/g, ", ");
+
+    const citiesArray = formattedCities
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
 
     const selectedCarriersData = formData.selectedCarriers
       .map((id) => {
@@ -140,11 +151,11 @@ const ShippingZones = () => {
           isActive: true,
         };
       })
-      .filter(Boolean); // remove nulls if any carrier not found
+      .filter(Boolean);
 
     const zonePayload = {
       name: formData.name,
-      cities: formData.cities.split(",").map((c) => c.trim()),
+      cities: formattedCities,
       isActive: formData.isActive,
       zoneCarriers: selectedCarriersData,
     };
@@ -189,11 +200,9 @@ const ShippingZones = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">{t("zones.heading")}</h1>
-            <p className="text-muted-foreground">
-              {t("zones.description")}
-            </p>
+            <p className="text-muted-foreground">{t("zones.description")}</p>
           </div>
-         <Button
+          <Button
             className="flex items-center gap-2"
             onClick={() => openDialog()}
           >
@@ -207,7 +216,9 @@ const ShippingZones = () => {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold">{zones.length}</div>
-              <p className="text-sm text-muted-foreground">{t("zones.total")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("zones.total")}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -215,7 +226,9 @@ const ShippingZones = () => {
               <div className="text-2xl font-bold text-green-600">
                 {stats.active}
               </div>
-              <p className="text-sm text-muted-foreground">{t("zones.active")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("zones.active")}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -223,7 +236,9 @@ const ShippingZones = () => {
               <div className="text-2xl font-bold text-orange-600">
                 {stats.inactive}
               </div>
-              <p className="text-sm text-muted-foreground">{t("zones.inactive")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("zones.inactive")}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -240,7 +255,7 @@ const ShippingZones = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-               placeholder={t("delivery.searchPlaceholder")}
+                placeholder={t("delivery.searchPlaceholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -252,9 +267,8 @@ const ShippingZones = () => {
               className="border rounded p-2"
             >
               <option value="all">{t("delivery.allZones")}</option>
-<option value="active">{t("delivery.activeZones")}</option>
-<option value="inactive">{t("delivery.inactiveZones")}</option>
-
+              <option value="active">{t("delivery.activeZones")}</option>
+              <option value="inactive">{t("delivery.inactiveZones")}</option>
             </select>
           </CardContent>
         </Card>
@@ -338,9 +352,13 @@ const ShippingZones = () => {
             <form onSubmit={handleSubmit}>
               <DialogHeader>
                 <DialogTitle>
-                  {editingZone ? t("delivery.editZoneTitle") : t("delivery.newZoneTitle")}
+                  {editingZone
+                    ? t("delivery.editZoneTitle")
+                    : t("delivery.newZoneTitle")}
                 </DialogTitle>
-                <DialogDescription>{t("delivery.configureZone")}</DialogDescription>
+                <DialogDescription>
+                  {t("delivery.configureZone")}
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div>
@@ -399,7 +417,11 @@ const ShippingZones = () => {
                       setFormData({ ...formData, isActive: checked })
                     }
                   />
-                  <span>{formData.isActive ? t("delivery.active") : t("delivery.inactive")}</span>
+                  <span>
+                    {formData.isActive
+                      ? t("delivery.active")
+                      : t("delivery.inactive")}
+                  </span>
                 </div>
               </div>
               <DialogFooter>
@@ -437,7 +459,6 @@ const ShippingZones = () => {
         </AlertDialog>
       </div>
     </DashboardLayout>
-
   );
 };
 

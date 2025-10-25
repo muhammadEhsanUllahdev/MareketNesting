@@ -47,7 +47,7 @@ export default function CartComponent({ className }: CartComponentProps) {
       const response = await fetch("/api/cart", {
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Failed to fetch cart");
+      if (!response.ok) throw new Error(t("cart.error.fetchFailed"));
       return response.json();
     },
     enabled: !!user,
@@ -55,59 +55,61 @@ export default function CartComponent({ className }: CartComponentProps) {
 
   // Update cart item quantity
   const updateQuantityMutation = useMutation({
-    mutationFn: async ({
-      productId,
-      quantity,
-    }: {
-      productId: string;
-      quantity: number;
-    }) => {
-      const response = await fetch(`/api/cart/${productId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ quantity }),
-      });
-      if (!response.ok) throw new Error("Failed to update quantity");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update quantity",
-        variant: "destructive",
-      });
-    },
-  });
+  mutationFn: async ({
+    productId,
+    quantity,
+  }: {
+    productId: string;
+    quantity: number;
+  }) => {
+    const response = await fetch(`/api/cart/${productId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ quantity }),
+    });
+    if (!response.ok) throw new Error(t("cart.error.updateQuantity"));
+    return response.json();
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+  },
+  onError: () => {
+    toast({
+      title: t("cart.toast.error.title"),
+      description: t("cart.toast.error.updateQuantity"),
+      variant: "destructive",
+    });
+  },
+});
+
 
   // Remove item from cart
-  const removeItemMutation = useMutation({
-    mutationFn: async (productId: string) => {
-      const response = await fetch(`/api/cart/${productId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to remove item");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-      toast({
-        title: "Success",
-        description: "Item removed from cart",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to remove item",
-        variant: "destructive",
-      });
-    },
-  });
+ const removeItemMutation = useMutation({
+  mutationFn: async (productId: string) => {
+    const response = await fetch(`/api/cart/${productId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!response.ok) throw new Error(t("cart.error.removeItem"));
+    return response.json();
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    toast({
+      title: t("cart.toast.success.title"),
+      description: t("cart.toast.success.removeItem"),
+    });
+  },
+  onError: () => {
+    toast({
+      title: t("cart.toast.error.title"),
+      description: t("cart.toast.error.removeItem"),
+      variant: "destructive",
+    });
+  },
+});
+
 
   const updateQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity < 1) return;

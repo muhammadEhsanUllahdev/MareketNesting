@@ -118,57 +118,61 @@ export function AddProductForm({
     return (completed / total) * 100;
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = Array.from(event.target.files || []);
     if (uploadedImages.length + files.length > 8) {
-      alert("Maximum 8 images allowed");
+      alert(t("addProduct.alert.maxImages"));
       return;
     }
 
     // Show loading state
     const loadingToast = toast({
-      title: "Uploading images...",
-      description: "Please wait while we upload your images.",
+      title: t("addProduct.toast.uploading.title"),
+      description: t("addProduct.toast.uploading.description"),
     });
 
     try {
       const formData = new FormData();
       files.forEach((file) => {
-        formData.append('images', file);
+        formData.append("images", file);
       });
 
-      const response = await fetch('/api/upload/images', {
-        method: 'POST',
+      const response = await fetch("/api/upload/images", {
+        method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload images');
+        throw new Error(t("product.images.uploadError"));
       }
 
       const result = await response.json();
-      
+
       // Update state with uploaded file paths
       const newImagePaths = result.files.map((file: any) => file.path);
       setUploadedImages((prev) => [...prev, ...newImagePaths]);
 
       loadingToast.dismiss();
       toast({
-        title: "Success",
-        description: `${files.length} image(s) uploaded successfully.`,
+        title: t("addProduct.toast.success.title"),
+        description: t("addProduct.toast.success.description", {
+          count: files.length,
+        }),
       });
     } catch (error) {
       loadingToast.dismiss();
       console.error("Error uploading images:", error);
       toast({
-        title: "Error",
-        description: "Failed to upload images. Please try again.",
+        title: t("addProduct.toast.error.title"),
+        description: t("addProduct.toast.error.description"),
         variant: "destructive",
       });
     }
 
     // Reset file input
-    event.target.value = '';
+    event.target.value = "";
   };
 
   const removeImage = (index: number) => {
@@ -186,7 +190,7 @@ export function AddProductForm({
               <>
                 <img
                   src={uploadedImages[index]}
-                  alt={`Product ${index + 1}`}
+                  alt={t("addProduct.image.alt", { index: index + 1 })}
                   className="w-full h-full object-cover rounded-lg"
                 />
                 <button
@@ -208,14 +212,16 @@ export function AddProductForm({
                 />
                 <Plus className="h-6 w-6 text-gray-400 mb-1" />
                 <span className="text-xs text-gray-500 text-center">
-                  {index === 0 ? "Main Image" : `Image ${index + 1}`}
+                  {index === 0
+                    ? t("addProduct.image.main")
+                    : t("addProduct.image.label", { index: index + 1 })}
                 </span>
               </label>
             ) : (
               <div className="flex flex-col items-center justify-center">
                 <ImageIcon className="h-6 w-6 text-gray-300 mb-1" />
                 <span className="text-xs text-gray-400 text-center">
-                  Image {index + 1}
+                  {t("addProduct.image.placeholder", { index: index + 1 })}
                 </span>
               </div>
             )}
@@ -232,11 +238,9 @@ export function AddProductForm({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Add a New Product
+            {t("addProduct.heading")}
           </h1>
-          <p className="text-gray-600 mt-1">
-            Fill in the product details below
-          </p>
+          <p className="text-gray-600 mt-1">{t("addProduct.subheading")}</p>
         </div>
       </div>
 
@@ -245,7 +249,7 @@ export function AddProductForm({
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
             <Package className="h-5 w-5 mr-2" />
-            Progress
+            {t("addProduct.progress.title")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -268,7 +272,9 @@ export function AddProductForm({
                       <Check className="h-3 w-3 text-white" />
                     )}
                 </div>
-                <span className="text-sm text-gray-600">General info</span>
+                <span className="text-sm text-gray-600">
+                  {t("addProduct.progress.general")}
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div
@@ -284,7 +290,9 @@ export function AddProductForm({
                       <Check className="h-3 w-3 text-white" />
                     )}
                 </div>
-                <span className="text-sm text-gray-600">Description</span>
+                <span className="text-sm text-gray-600">
+                  {t("addProduct.progress.description")}
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div
@@ -296,13 +304,17 @@ export function AddProductForm({
                     <Check className="h-3 w-3 text-white" />
                   )}
                 </div>
-                <span className="text-sm text-gray-600">Images</span>
+                <span className="text-sm text-gray-600">
+                  {t("addProduct.progress.images")}
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
                   <Check className="h-3 w-3 text-white" />
                 </div>
-                <span className="text-sm text-gray-600">Reviews</span>
+                <span className="text-sm text-gray-600">
+                  {t("addProduct.progress.reviews")}
+                </span>
               </div>
             </div>
           </div>
@@ -313,20 +325,30 @@ export function AddProductForm({
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           <Tabs value={currentTab} onValueChange={setCurrentTab}>
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="images">Images</TabsTrigger>
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="description">Description</TabsTrigger>
+              <TabsTrigger value="general">
+                {" "}
+                {t("addProduct.tabs.general")}
+              </TabsTrigger>
+              <TabsTrigger value="images">
+                {t("addProduct.tabs.images")}
+              </TabsTrigger>
+              <TabsTrigger value="details">
+                {t("addProduct.tabs.details")}
+              </TabsTrigger>
+              <TabsTrigger value="description">
+                {t("addProduct.tabs.description")}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
+                  <CardTitle>{t("product.card.basicInfo.title")}</CardTitle>
                   <p className="text-sm text-gray-600">
-                    Enter the basic product information and details
+                    {t("product.card.basicInfo.subtitle")}
                   </p>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -334,10 +356,10 @@ export function AddProductForm({
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Product Name *</FormLabel>
+                          <FormLabel>{t("product.form.name.label")}</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Ex: Sneakers Nike Air Max - Red"
+                              placeholder={t("product.form.name.placeholder")}
                               {...field}
                             />
                           </FormControl>
@@ -345,21 +367,24 @@ export function AddProductForm({
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="price"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Price (USD) *</FormLabel>
+                          <FormLabel>{t("product.form.price.label")}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               step="0.01"
-                              placeholder="0.00"
+                              placeholder={t("product.form.price.placeholder")}
                               {...field}
                               onChange={(e) => {
                                 const value = e.target.value;
-                                field.onChange(value === "" ? "" : parseFloat(value) || 0);
+                                field.onChange(
+                                  value === "" ? "" : parseFloat(value) || 0
+                                );
                               }}
                             />
                           </FormControl>
@@ -375,15 +400,21 @@ export function AddProductForm({
                       name="stockQuantity"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Stock available</FormLabel>
+                          <FormLabel>
+                            {t("product.form.stockQuantity.label")}
+                          </FormLabel>
                           <FormControl>
                             <Input
                               type="number"
-                              placeholder="100"
+                              placeholder={t(
+                                "product.form.stockQuantity.placeholder"
+                              )}
                               {...field}
                               onChange={(e) => {
                                 const value = e.target.value;
-                                field.onChange(value === "" ? "" : parseInt(value) || 0);
+                                field.onChange(
+                                  value === "" ? "" : parseInt(value) || 0
+                                );
                               }}
                             />
                           </FormControl>
@@ -391,15 +422,20 @@ export function AddProductForm({
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="referenceUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Reference URL</FormLabel>
+                          <FormLabel>
+                            {t("product.form.referenceUrl.label")}
+                          </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="https://example.com/product"
+                              placeholder={t(
+                                "product.form.referenceUrl.placeholder"
+                              )}
                               {...field}
                             />
                           </FormControl>
@@ -415,30 +451,40 @@ export function AddProductForm({
                       name="categoryId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category *</FormLabel>
+                          <FormLabel>
+                            {t("product.form.category.label")}
+                          </FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
+                                <SelectValue
+                                  placeholder={t(
+                                    "product.form.category.placeholder"
+                                  )}
+                                />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="electronics">
-                                Electronics
+                                {t("product.form.category.electronics")}
                               </SelectItem>
-                              <SelectItem value="clothing">Clothing</SelectItem>
+                              <SelectItem value="clothing">
+                                {t("product.form.category.clothing")}
+                              </SelectItem>
                               <SelectItem value="home">
-                                Home & Garden
+                                {t("product.form.category.home")}
                               </SelectItem>
                               <SelectItem value="sports">
-                                Sports & Outdoors
+                                {t("product.form.category.sports")}
                               </SelectItem>
-                              <SelectItem value="books">Books</SelectItem>
+                              <SelectItem value="books">
+                                {t("product.form.category.books")}
+                              </SelectItem>
                               <SelectItem value="health">
-                                Health & Beauty
+                                {t("product.form.category.health")}
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -446,15 +492,20 @@ export function AddProductForm({
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="productNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Product number for the supplier</FormLabel>
+                          <FormLabel>
+                            {t("product.form.productNumber.label")}
+                          </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="SKU or product code"
+                              placeholder={t(
+                                "product.form.productNumber.placeholder"
+                              )}
                               {...field}
                             />
                           </FormControl>
@@ -470,11 +521,12 @@ export function AddProductForm({
             <TabsContent value="images" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Images</CardTitle>
+                  <CardTitle>{t("product.card.images.title")}</CardTitle>
                   <p className="text-sm text-gray-600">
-                    Add product images (maximum 8 images)
+                    {t("product.card.addimages.subtitle")}
                   </p>
                 </CardHeader>
+
                 <CardContent>
                   <div className="space-y-4">
                     <div className="grid grid-cols-4 gap-4">
@@ -483,15 +535,25 @@ export function AddProductForm({
 
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h4 className="font-medium text-blue-900 mb-2">
-                        Recommendations for images
+                        {t("product.images.recommendations.title")}
                       </h4>
                       <ul className="text-sm text-blue-800 space-y-1">
-                        <li>• Format: JPG, PNG</li>
-                        <li>• Resolution: minimum 500x500px</li>
-                        <li>• Light and clear background</li>
-                        <li>• Background preferable white or neutral</li>
-                        <li>• Quality: high (&gt;50 pixels/centimeter)</li>
-                        <li>• Focus product without any margin</li>
+                        <li>• {t("product.images.recommendations.format")}</li>
+                        <li>
+                          • {t("product.images.recommendations.resolution")}
+                        </li>
+                        <li>
+                          •{" "}
+                          {t("product.images.recommendations.backgroundLight")}
+                        </li>
+                        <li>
+                          •{" "}
+                          {t(
+                            "product.images.recommendations.backgroundNeutral"
+                          )}
+                        </li>
+                        <li>• {t("product.images.recommendations.quality")}</li>
+                        <li>• {t("product.images.recommendations.focus")}</li>
                       </ul>
                     </div>
                   </div>
@@ -502,11 +564,14 @@ export function AddProductForm({
             <TabsContent value="details" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Appearance and dimensions</CardTitle>
+                  <CardTitle>
+                    {t("product.card.appearanceDimensions.title")}
+                  </CardTitle>
                   <p className="text-sm text-gray-600">
-                    Specify product physical characteristics
+                    {t("product.card.appearanceDimensions.subtitle")}
                   </p>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -514,7 +579,7 @@ export function AddProductForm({
                       name="color"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Color</FormLabel>
+                          <FormLabel>{t("product.form.color.label")}</FormLabel>
                           <FormControl>
                             <Input placeholder="Ex: Red" {...field} />
                           </FormControl>
@@ -527,7 +592,9 @@ export function AddProductForm({
                       name="colorFamily"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Color Family</FormLabel>
+                          <FormLabel>
+                            {t("product.form.colorFamily.label")}
+                          </FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
@@ -538,16 +605,36 @@ export function AddProductForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="red">Red</SelectItem>
-                              <SelectItem value="blue">Blue</SelectItem>
-                              <SelectItem value="green">Green</SelectItem>
-                              <SelectItem value="yellow">Yellow</SelectItem>
-                              <SelectItem value="black">Black</SelectItem>
-                              <SelectItem value="white">White</SelectItem>
-                              <SelectItem value="gray">Gray</SelectItem>
-                              <SelectItem value="brown">Brown</SelectItem>
-                              <SelectItem value="orange">Orange</SelectItem>
-                              <SelectItem value="purple">Purple</SelectItem>
+                              <SelectItem value="red">
+                                {t("product.form.color.red")}
+                              </SelectItem>
+                              <SelectItem value="blue">
+                                {t("product.form.color.blue")}
+                              </SelectItem>
+                              <SelectItem value="green">
+                                {t("product.form.color.green")}
+                              </SelectItem>
+                              <SelectItem value="yellow">
+                                {t("product.form.color.yellow")}
+                              </SelectItem>
+                              <SelectItem value="black">
+                                {t("product.form.color.black")}
+                              </SelectItem>
+                              <SelectItem value="white">
+                                {t("product.form.color.white")}
+                              </SelectItem>
+                              <SelectItem value="gray">
+                                {t("product.form.color.gray")}
+                              </SelectItem>
+                              <SelectItem value="brown">
+                                {t("product.form.color.brown")}
+                              </SelectItem>
+                              <SelectItem value="orange">
+                                {t("product.form.color.orange")}
+                              </SelectItem>
+                              <SelectItem value="purple">
+                                {t("product.form.color.purple")}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -562,22 +649,37 @@ export function AddProductForm({
                       name="displaySize"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Display Size</FormLabel>
+                          <FormLabel>
+                            {t("product.form.displaySize.label")}
+                          </FormLabel>
                           <FormControl>
-                            <Input placeholder="Ex: 15.6 inches" {...field} />
+                            <Input
+                              placeholder={t(
+                                "product.form.displaySize.placeholder"
+                              )}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="dimensions"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Size in W x H format</FormLabel>
+                          <FormLabel>
+                            {t("product.form.dimensions.label")}
+                          </FormLabel>
                           <FormControl>
-                            <Input placeholder="Ex: 30 cm x 20 cm" {...field} />
+                            <Input
+                              placeholder={t(
+                                "product.form.dimensions.placeholder"
+                              )}
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -591,24 +693,31 @@ export function AddProductForm({
             <TabsContent value="description" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Description and highlights</CardTitle>
+                  <CardTitle>
+                    {t("product.card.descriptionHighlights.title")}
+                  </CardTitle>
                   <p className="text-sm text-gray-600">
-                    Provide detailed product description and key features
+                    {t("product.card.descriptionHighlights.subtitle")}
                   </p>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                   <FormField
                     control={form.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Product Description *</FormLabel>
+                        <FormLabel>
+                          {t("product.form.description.label")}
+                        </FormLabel>
                         <FormControl>
                           <ReactQuill
                             theme="snow"
                             value={field.value || ""}
                             onChange={field.onChange}
-                            placeholder="Describe your product in detail..."
+                            placeholder={t(
+                              "product.form.description.placeholder"
+                            )}
                             modules={{
                               toolbar: [
                                 [{ header: [1, 2, 3, false] }],
@@ -624,19 +733,22 @@ export function AddProductForm({
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name="highlights"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Highlights</FormLabel>
+                        <FormLabel>
+                          {t("product.form.highlights.label")}
+                        </FormLabel>
                         <FormControl>
                           <ReactQuill
                             theme="snow"
                             value={field.value || ""}
                             onChange={field.onChange}
-                            placeholder="Key features and highlights..."
+                            placeholder={t(
+                              "product.form.highlights.placeholder"
+                            )}
                             modules={{
                               toolbar: [
                                 [{ header: [1, 2, 3, false] }],
@@ -660,16 +772,18 @@ export function AddProductForm({
 
           <div className="flex justify-between items-center pt-6 border-t">
             <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
+              {t("addProduct.actions.cancel")}
             </Button>
             <div className="flex space-x-3">
               <Button type="button" variant="outline">
                 <Eye className="h-4 w-4 mr-2" />
-                Preview
+                {t("addProduct.actions.preview")}
               </Button>
               <Button type="submit" disabled={isLoading}>
                 <Save className="h-4 w-4 mr-2" />
-                {isLoading ? "Saving..." : "Save Product"}
+                {isLoading
+                  ? t("addProduct.actions.saving")
+                  : t("addProduct.actions.save")}
               </Button>
             </div>
           </div>

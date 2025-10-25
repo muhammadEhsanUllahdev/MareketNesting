@@ -94,16 +94,6 @@ export default function AdminDashboard() {
   const [orderToDismiss, setOrderToDismiss] = useState<any>(null);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
-  // const { data: dashboardStats, isLoading } = useQuery({
-  //   queryKey: ["/api/dashboard/admin"],
-  //   queryFn: async () => {
-  //     const response = await fetch("/api/dashboard/admin", {
-  //       credentials: "include",
-  //     });
-  //     if (!response.ok) throw new Error(t("dashboard.errors.fetchStats"));
-  //     return response.json();
-  //   },
-  // });
   const { data: dashboardStats, isLoading } = useQuery({
     queryKey: ["/api/dashboard/admin"],
     queryFn: async () => {
@@ -608,60 +598,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Quick Actions */}
-        {/* <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Button
-              className="h-20 flex-col space-y-2 bg-primary-600 hover:bg-primary-700"
-              data-testid="button-add-category"
-            >
-              <Plus className="h-6 w-6" />
-              <span>Add Category</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-20 flex-col space-y-2"
-              data-testid="button-manage-users"
-            >
-              <Users className="h-6 w-6" />
-              <span>Manage Users</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-20 flex-col space-y-2"
-              data-testid="button-vendor-approval"
-            >
-              <Shield className="h-6 w-6" />
-              <span>Vendor Approval</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-20 flex-col space-y-2"
-              data-testid="button-platform-settings"
-            >
-              <Settings className="h-6 w-6" />
-              <span>Platform Settings</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-20 flex-col space-y-2"
-              data-testid="button-content-moderation"
-            >
-              <AlertTriangle className="h-6 w-6" />
-              <span>Content Moderation</span>
-            </Button>
-          </div>
-        </div>
- */}
-
-        {/* Pending Sellers Management */}
-        {/* <div className="mb-8">
-          <PendingSellers />
-        </div> */}
-
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Charts and Main Content */}
@@ -678,10 +614,6 @@ export default function AdminDashboard() {
                   <CardTitle className="text-lg font-semibold">
                     {t("admin.sales.subheading")}
                   </CardTitle>
-                  {/* <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filter
-                  </Button> */}
                 </CardHeader>
                 <CardContent>
                   <div className="h-80">
@@ -736,7 +668,10 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">{product.sales} sales</p>
+                        <p className="font-semibold">
+  {product.sales} {t("product.salesLabel")}
+</p>
+
                         <div className="flex items-center space-x-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                           <span className="text-xs text-gray-500">
@@ -1008,18 +943,19 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Payment */}
-                        <div className="min-w-[80px]">
-                          <Badge className="bg-green-100 text-green-700">
-                            {order.paymentStatus || "Paid"}
-                          </Badge>
-                        </div>
+<div className="min-w-[80px]">
+  <Badge className="bg-green-100 text-green-700">
+    {order.paymentStatus || t("order.paymentStatus.paid")}
+  </Badge>
+</div>
 
-                        {/* Items */}
-                        <div className="min-w-[100px]">
-                          <span className="text-gray-600">
-                            {order.itemCount || 1} items
-                          </span>
-                        </div>
+{/* Items */}
+<div className="min-w-[100px]">
+  <span className="text-gray-600">
+    {order.itemCount || 1} {t("order.itemCountLabel")}
+  </span>
+</div>
+
 
                         {/* Amount */}
                         <div className="min-w-[100px]">
@@ -1198,7 +1134,7 @@ export default function AdminDashboard() {
                                   {t("orders.estimatedTime")}
                                 </div>
                                 <div className="text-xs text-right">
-                                  {order.shippingOption.deliveryTime}{" "}
+                                  {order.shippingOption?.deliveryTime}{" "}
                                 </div>
                                 <div className="text-xs font-medium">
                                   {t("orders.status")}

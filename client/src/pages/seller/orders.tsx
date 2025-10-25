@@ -117,7 +117,7 @@ export default function SellerOrdersPage() {
     queryKey: ["sellerOrders"],
     queryFn: async () => {
       const res = await fetch("/api/seller/orders");
-      if (!res.ok) throw new Error("Failed to fetch customers");
+      if (!res.ok) throw new Error(t("customers.error.fetchFailed"));
       return res.json();
     },
   });
@@ -175,6 +175,10 @@ export default function SellerOrdersPage() {
       },
       pending: {
         text: t("status.pending"),
+        className: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+      },
+      paid: {
+        text: t("status.paid"),
         className: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
       },
     };
@@ -445,10 +449,11 @@ export default function SellerOrdersPage() {
                                 order.shippingAddress.lastName
                                   ? `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`
                                   : order.shippingAddress.fullName ||
-                                    "Unknown User"}
+                                    t("order.unknownUser")}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {order.shippingAddress.email || "No email"}
+                                {order.shippingAddress.email ||
+                                  t("order.noEmail")}
                               </div>
                             </div>
                           </div>
@@ -485,7 +490,7 @@ export default function SellerOrdersPage() {
                                   order.shippingAddress.lastName
                                     ? `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`
                                     : order.shippingAddress.fullName ||
-                                      "Unknown User",
+                                      t("order.unknownUser"),
                                 customer_email:
                                   order.shippingAddress.email || "",
                                 status: order.status as any,
@@ -515,7 +520,8 @@ export default function SellerOrdersPage() {
                                       id: item.id,
                                       product_id: item.productId,
                                       product_name:
-                                        item.product?.name || "Unknown Product",
+                                        item.product?.name ||
+                                        t("order.unknownProduct"),
                                       unit_price: item.unitPrice,
                                       total_price: item.totalPrice,
                                       quantity: item.quantity,
@@ -542,29 +548,34 @@ export default function SellerOrdersPage() {
           {selectedOrder && (
             <>
               <DialogHeader>
-                <DialogTitle>🧾 Order #{selectedOrder.orderNumber}</DialogTitle>
+                <DialogTitle>
+                  🧾 {t("orderDetails.title")} #{selectedOrder.orderNumber}
+                </DialogTitle>
               </DialogHeader>
 
               <div className="space-y-4 mt-4">
-                {/* Order Summary */}
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-gray-600">
-                      Status: {getStatusBadge(selectedOrder.status)}
+                      {t("orderDetails.status")}:{" "}
+                      {getStatusBadge(selectedOrder.status)}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Payment: {getPaymentBadge(selectedOrder.paymentStatus)}
+                      {t("orderDetails.payment")}:{" "}
+                      {getPaymentBadge(selectedOrder.paymentStatus)}
                     </p>
                   </div>
                   <div className="text-right font-semibold">
-                    Total: {selectedOrder.totalAmount} €
+                    {t("orderDetails.total")}: {selectedOrder.totalAmount} €
                   </div>
                 </div>
 
                 <Separator />
 
                 <div>
-                  <h3 className="font-semibold mb-2">Customer Details</h3>
+                  <h3 className="font-semibold mb-2">
+                    {t("orderDetails.customerDetails")}
+                  </h3>
                   <p>
                     <strong>{selectedOrder.shippingAddress.fullName}</strong>
                   </p>
@@ -573,7 +584,9 @@ export default function SellerOrdersPage() {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-2">Shipping Address</h3>
+                  <h3 className="font-semibold mb-2">
+                    {t("orderDetails.shippingAddress")}
+                  </h3>
                   <p>
                     {selectedOrder.shippingAddress.street},{" "}
                     {selectedOrder.shippingAddress.city},{" "}
@@ -585,15 +598,19 @@ export default function SellerOrdersPage() {
 
                 {selectedOrder.items && selectedOrder.items.length > 0 && (
                   <div>
-                    <h3 className="font-semibold mb-2">Items Ordered</h3>
+                    <h3 className="font-semibold mb-2">
+                      {t("orderDetails.itemsOrdered")}
+                    </h3>
                     <div className="border rounded-md">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Product</TableHead>
-                            <TableHead>Qty</TableHead>
-                            <TableHead>Unit Price</TableHead>
-                            <TableHead>Total</TableHead>
+                            <TableHead>{t("orderDetails.product")}</TableHead>
+                            <TableHead>{t("orderDetails.qty")}</TableHead>
+                            <TableHead>{t("orderDetails.unitPrice")}</TableHead>
+                            <TableHead>
+                              {t("orderDetails.totalLabel")}
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>

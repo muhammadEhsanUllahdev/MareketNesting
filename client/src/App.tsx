@@ -47,6 +47,10 @@ import ClientStatistics from "./pages/client/statistics/Statistics";
 import ClientProfile from "./pages/client/myProfile/Profile";
 import SellerSettings from "./pages/seller/settings/Settings";
 import StoreRevenues from "./pages/admin/revenue/StoreRevenues";
+import WithdrawalRequests from "./pages/seller/withdrawal/WithdrawalRequests";
+import ProductBlacklist from "./pages/admin/blacklist/ProductBlacklist";
+import Shipments from "./pages/admin/parcelTracking/Shipments";
+import SearchResults from "./pages/SearchResults";
 import "./lib/i18n";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Elements } from "@stripe/react-stripe-js";
@@ -75,6 +79,7 @@ function Router() {
       <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/products" component={ProductsPage} />
       <Route path="/products/:id" component={ProductDetails} />
+      <Route path="/search" component={SearchResults} />
       {/* <Route
         path="/checkout"
         element={
@@ -152,6 +157,10 @@ function Router() {
         component={StockAlertsPage}
       />
       <ProtectedRoute
+        path="/dashboard/seller/withdrawals"
+        component={WithdrawalRequests}
+      />
+      <ProtectedRoute
         path="/dashboard/seller/orders"
         component={SellerOrdersPage}
       />
@@ -168,6 +177,11 @@ function Router() {
         path="/dashboard/admin/stores"
         component={StoreManagement}
       />
+      <ProtectedRoute
+        path="/dashboard/admin/blacklisted"
+        component={ProductBlacklist}
+      />
+      <ProtectedRoute path="/dashboard/admin/tracking" component={Shipments} />
       <ProtectedRoute
         path="/dashboard/admin/revenues"
         component={StoreRevenues}

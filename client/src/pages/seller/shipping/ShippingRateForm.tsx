@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Carrier } from "./types/shipping";
+import { useTranslation } from "react-i18next";
 
 interface ShippingRateFormProps {
   open: boolean;
@@ -55,7 +56,7 @@ export const ShippingRateForm: React.FC<ShippingRateFormProps> = ({
       });
     }
   }, [rate, carriers]);
-
+const { t } = useTranslation();
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -78,13 +79,13 @@ export const ShippingRateForm: React.FC<ShippingRateFormProps> = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {rate ? "Modifier le tarif" : "Nouveau tarif"}
+            {rate ? t("shippingRateForm.editRate") : t("shippingRateForm.newRate")}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Zone</Label>
+            <Label>{t("shippingRateForm.zone")}</Label>
             <Input
               name="zone"
               value={form.zone}
@@ -95,7 +96,7 @@ export const ShippingRateForm: React.FC<ShippingRateFormProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Poids min (kg)</Label>
+              <Label>{t("shippingRateForm.weightMin")}</Label>
               <Input
                 type="number"
                 name="weightMin"
@@ -105,7 +106,7 @@ export const ShippingRateForm: React.FC<ShippingRateFormProps> = ({
               />
             </div>
             <div className="space-y-2">
-              <Label>Poids max (kg)</Label>
+              <Label>{t("shippingRateForm.weightMax")}</Label>
               <Input
                 type="number"
                 name="weightMax"
@@ -117,7 +118,7 @@ export const ShippingRateForm: React.FC<ShippingRateFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Prix (DA)</Label>
+            <Label>{t("shippingRateForm.price")}</Label>
             <Input
               type="number"
               name="price"
@@ -128,7 +129,7 @@ export const ShippingRateForm: React.FC<ShippingRateFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Transporteur</Label>
+            <Label>{t("shippingRateForm.carrier")}</Label>
             <select
               name="carrierId"
               value={form.carrierId}
@@ -145,7 +146,7 @@ export const ShippingRateForm: React.FC<ShippingRateFormProps> = ({
           </div>
 
           <Button type="submit" className="w-full">
-            {rate ? "Mettre à jour" : "Créer"}
+            {rate ? t("shippingRateForm.update") : t("shippingRateForm.create")}
           </Button>
         </form>
       </DialogContent>

@@ -70,7 +70,7 @@ import { useToast } from "@/hooks/use-toast";
 import { insertStoreSchema } from "@shared/schema";
 import type { Store as StoreType } from "@shared/schema";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
- 
+
 // Enhanced store data type for the UI
 interface StoreWithDetails extends StoreType {
   name: string;
@@ -87,21 +87,19 @@ interface StoreWithDetails extends StoreType {
   ownerAddressCountry: string;
 }
 
-const createStoreSchema = z.object({
-  name: z.string().min(1, "Store name is required"),
-  ownerEmail: z.string().email("Please enter a valid email address"),
-  categoryId: z.string().optional(),
-  description: z.string().optional(),
-  ownerPhone: z.string().optional(),
-  website: z.string().url().optional().or(z.literal("")),
-  taxId: z.string().optional(),
-  ownerAddressStreet: z.string().optional(),
-  ownerAddressCity: z.string().optional(),
-  ownerAddressZipCode: z.string().optional(),
-  ownerAddressCountry: z.string().optional(),
-});
-
-type CreateStoreFormData = z.infer<typeof createStoreSchema>;
+// const createStoreSchema = z.object({
+//   name: z.string().min(1, "Store name is required"),
+//   ownerEmail: z.string().email("Please enter a valid email address"),
+//   categoryId: z.string().optional(),
+//   description: z.string().optional(),
+//   ownerPhone: z.string().optional(),
+//   website: z.string().url().optional().or(z.literal("")),
+//   taxId: z.string().optional(),
+//   ownerAddressStreet: z.string().optional(),
+//   ownerAddressCity: z.string().optional(),
+//   ownerAddressZipCode: z.string().optional(),
+//   ownerAddressCountry: z.string().optional(),
+// });
 
 // Send message form schema
 // const sendMessageSchema = z.object({
@@ -109,49 +107,70 @@ type CreateStoreFormData = z.infer<typeof createStoreSchema>;
 //   messageContent: z.string().min(1, "Message content is required"),
 // });
 
-
-
 // type SendMessageFormData = z.infer<typeof sendMessageSchema>;
 
 export default function StoreManagement() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const sendMessageSchema = z.object({
-  messageType: z.string().min(1, { message: t("validation.messageTypeRequired") }),
-  messageContent: z.string().min(1, { message: t("validation.messageContentRequired") }),
-});
-type SendMessageFormData = z.infer<typeof sendMessageSchema>;
+    messageType: z
+      .string()
+      .min(1, { message: t("validation.messageTypeRequired") }),
+    messageContent: z
+      .string()
+      .min(1, { message: t("validation.messageContentRequired") }),
+  });
+  type CreateStoreFormData = z.infer<typeof createStoreSchema>;
+  const createStoreSchema = z.object({
+    name: z.string().min(1, t("validation.storeNameRequired")),
+    ownerEmail: z.string().email(t("validation.validEmail")),
+    categoryId: z.string().optional(),
+    description: z.string().optional(),
+    ownerPhone: z.string().optional(),
+    website: z.string().url().optional().or(z.literal("")),
+    taxId: z.string().optional(),
+    ownerAddressStreet: z.string().optional(),
+    ownerAddressCity: z.string().optional(),
+    ownerAddressZipCode: z.string().optional(),
+    ownerAddressCountry: z.string().optional(),
+  });
+  type SendMessageFormData = z.infer<typeof sendMessageSchema>;
   const [selectedStore, setSelectedStore] = useState<StoreWithDetails | null>(
     null
   );
   const [showAddModal, setShowAddModal] = useState(false);
   const [sendMessageStore, setSendMessageStore] =
     useState<StoreWithDetails | null>(null);
- 
-async function getStoreStats() {
-  // Client-side helper to fetch store statistics from the server API
-  const res = await fetch("/api/admin/stores/stats", { credentials: "include" });
-  if (!res.ok) {
-    throw new Error("Failed to fetch store stats");
+
+  async function getStoreStats() {
+    // Client-side helper to fetch store statistics from the server API
+    const res = await fetch("/api/admin/stores/stats", {
+      credentials: "include",
+    });
+    if (!res.ok) {
+      throw new Error(t("storeStats.fetchError"));
+    }
+    return res.json();
   }
-  return res.json();
-}
 
   // 🟢 Add your useQuery HERE — inside the component, before the return()
-  const { data: storeStats = {
-    totalStores: 0,
-    activeStores: 0,
-    onHoldStores: 0,
-    totalRevenue: "0"
-  } } = useQuery({
+  const {
+    data: storeStats = {
+      totalStores: 0,
+      activeStores: 0,
+      onHoldStores: 0,
+      totalRevenue: "0",
+    },
+  } = useQuery({
     queryKey: ["/api/admin/stores/stats"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/stores/stats", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch store stats");
+      const res = await fetch("/api/admin/stores/stats", {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(t("storeStats.fetchError"));
       return res.json();
     },
   });
-    
 
   // // Fetch store statistics
   // const { data: storeStats } = useQuery<{
@@ -280,8 +299,7 @@ async function getStoreStats() {
           id: store.id,
           updates: {
             status: "suspended_noncompliance",
-            suspensionReason:
-              "Your store has been suspended due to non-compliance with our terms and conditions. Please review our policies and contact support for clarification.",
+            suspensionReason: t("storeActions.suspendNoncomplianceReason"),
           },
         });
         break;
@@ -290,8 +308,7 @@ async function getStoreStats() {
           id: store.id,
           updates: {
             status: "suspended_documents",
-            suspensionReason:
-              "Your store has been suspended because required documents are missing or invalid. Please provide the requested documentation to reactivate your store.",
+            suspensionReason: t("storeActions.suspendDocumentsReason"),
           },
         });
         break;
@@ -300,8 +317,7 @@ async function getStoreStats() {
           id: store.id,
           updates: {
             status: "suspended_fraud",
-            suspensionReason:
-              "Your store has been suspended due to suspected fraudulent activity. Please contact our support team immediately to resolve this issue.",
+            suspensionReason: t("storeActions.suspendFraudReason"),
           },
         });
         break;
@@ -447,7 +463,7 @@ async function getStoreStats() {
             {t("store.status.fraud")}
           </span>
         );
-         case "suspended_approved":
+      case "suspended_approved":
         return (
           <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
             {t("store.status.approved")}
@@ -517,7 +533,7 @@ async function getStoreStats() {
                 className="text-2xl font-bold"
                 data-testid="stat-total-stores"
               >
-              <p className="text-2xl font-bold">{storeStats.totalStores}</p>
+                <p className="text-2xl font-bold">{storeStats.totalStores}</p>
               </div>
             </CardContent>
           </Card>
@@ -534,7 +550,7 @@ async function getStoreStats() {
                 className="text-2xl font-bold text-green-600"
                 data-testid="stat-active-stores"
               >
-               <p className="text-2xl font-bold">{storeStats.activeStores}</p>
+                <p className="text-2xl font-bold">{storeStats.activeStores}</p>
               </div>
             </CardContent>
           </Card>
@@ -598,197 +614,198 @@ async function getStoreStats() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                                  <TableRow>
-                                    <TableCell colSpan={9} className="text-center py-8">
-                                      {t("categories.loadingSuper")}
-                                    </TableCell>
-                                  </TableRow>
-                                ) : stores.length === 0 ? (
-                                  <TableRow>
-                                    <TableCell colSpan={9} className="text-center py-8">
-                                      <div className="text-lg text-gray-600 mb-2">
-                                        <Store className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                       No Store Found
-                                      </div>
-                                      <div className="text-sm text-gray-500">
-                                        Create your first store to get started
-                                      </div>
-                                     
-                                    </TableCell>
-                                  </TableRow>
-                                ) : (stores.map((store) => (
-                  <TableRow
-                    key={store.id}
-                    data-testid={`row-store-${store.id}`}
-                  >
-                    <TableCell
-                      className="font-medium"
-                      data-testid={`text-code-${store.id}`}
-                    >
-                      {store.codeStore}
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      {t("categories.loadingSuper")}
                     </TableCell>
-                    <TableCell>
-                      <div
-                        className="cursor-pointer hover:text-purple-600"
-                        onClick={() => setSelectedStore(store)}
-                        data-testid={`button-store-details-${store.id}`}
-                      >
-                        <div className="font-medium">{store.name}</div>
-                        <div className="text-sm text-gray-500">
-                          {store.ownerName}
-                        </div>
+                  </TableRow>
+                ) : stores.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      <div className="text-lg text-gray-600 mb-2">
+                        <Store className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        {t("stores.noStoreFound")}
                       </div>
-                    </TableCell>
-                    <TableCell data-testid={`status-${store.id}`}>
-                      {getStatusBadge(store.status)}
-                    </TableCell>
-                    <TableCell data-testid={`date-created-${store.id}`}>
-                      {new Date(store.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>Active</TableCell>
-                    <TableCell data-testid={`subscription-end-${store.id}`}>
-                      {store.subscriptionEnd
-                        ? new Date(store.subscriptionEnd).toLocaleDateString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell
-                      data-testid={`messages-sent-${store.id}`}
-                      className="max-w-[200px]"
-                    >
-                      {(() => {
-                        const lastMessage = getDummyLastMessage(store);
-                        if (!lastMessage) {
-                          return (
-                            <span className="text-gray-400 text-sm">
-                              {t("messages.none")}
-                            </span>
-                          );
-                        }
-                        return (
-                          <div className="space-y-1">
-                            <div className="text-xs font-medium text-purple-600">
-                              {lastMessage.type}
-                            </div>
-                            <div
-                              className="text-xs text-gray-600 dark:text-gray-400 truncate"
-                              title={lastMessage.content}
-                            >
-                              {lastMessage.content}
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              {lastMessage.time}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell data-testid={`last-action-${store.id}`}>
-                      {store.lastActionAt
-                        ? new Date(store.lastActionAt).toLocaleDateString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {/* Details button */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedStore(store)}
-                          data-testid={`action-details-${store.id}`}
-                        >
-                          <Eye className="h-4 w-4 mr-2 text-blue-600" />
-                          {t("store.table.details")}
-                        </Button>
-
-                        {/* Actions dropdown */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-1"
-                            >
-                              {t("store.table.actions")}
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {store.status === "pending_validation" && (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleStoreAction(store, "validate")
-                                  }
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                  {t("stores.validateStore")}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleStoreAction(store, "dismiss")
-                                  }
-                                >
-                                  <X className="h-4 w-4 mr-2 text-red-600" />
-                                  {t("stores.dismiss")}
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleStoreAction(store, "request_documents")
-                              }
-                            >
-                              <FileText className="h-4 w-4 mr-2 text-blue-600" />
-                              {t("stores.requestDocuments")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleStoreAction(
-                                  store,
-                                  "suspend_noncompliance"
-                                )
-                              }
-                            >
-                              <Ban className="h-4 w-4 mr-2 text-orange-600" />
-                              {t("stores.suspendNonCompliance")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleStoreAction(store, "suspend_documents")
-                              }
-                            >
-                              <Pause className="h-4 w-4 mr-2 text-purple-600" />
-                              {t("stores.suspendMissingDocuments")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleStoreAction(store, "suspend_fraud")
-                              }
-                            >
-                              <AlertTriangle className="h-4 w-4 mr-2 text-red-600" />
-                              {t("stores.suspendFraud")}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-
-                      {/* Send Message below row */}
-                      <div className="mt-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() =>
-                            handleStoreAction(store, "send_message")
-                          }
-                          data-testid={`action-send-message-${store.id}`}
-                        >
-                          <MessageCircle className="h-4 w-4 mr-2 text-blue-600" />
-                          {t("store.table.sendMessage")}
-                        </Button>
+                      <div className="text-sm text-gray-500">
+                        {t("stores.createFirstStore")}
                       </div>
                     </TableCell>
                   </TableRow>
-                )))}
+                ) : (
+                  stores.map((store) => (
+                    <TableRow
+                      key={store.id}
+                      data-testid={`row-store-${store.id}`}
+                    >
+                      <TableCell
+                        className="font-medium"
+                        data-testid={`text-code-${store.id}`}
+                      >
+                        {store.codeStore}
+                      </TableCell>
+                      <TableCell>
+                        <div
+                          className="cursor-pointer hover:text-purple-600"
+                          onClick={() => setSelectedStore(store)}
+                          data-testid={`button-store-details-${store.id}`}
+                        >
+                          <div className="font-medium">{store.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {store.ownerName}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell data-testid={`status-${store.id}`}>
+                        {getStatusBadge(store.status)}
+                      </TableCell>
+                      <TableCell data-testid={`date-created-${store.id}`}>
+                        {new Date(store.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>{t("stores.active")}</TableCell>
+                      <TableCell data-testid={`subscription-end-${store.id}`}>
+                        {store.subscriptionEnd
+                          ? new Date(store.subscriptionEnd).toLocaleDateString()
+                          : "-"}
+                      </TableCell>
+                      <TableCell
+                        data-testid={`messages-sent-${store.id}`}
+                        className="max-w-[200px]"
+                      >
+                        {(() => {
+                          const lastMessage = getDummyLastMessage(store);
+                          if (!lastMessage) {
+                            return (
+                              <span className="text-gray-400 text-sm">
+                                {t("messages.none")}
+                              </span>
+                            );
+                          }
+                          return (
+                            <div className="space-y-1">
+                              <div className="text-xs font-medium text-purple-600">
+                                {lastMessage.type}
+                              </div>
+                              <div
+                                className="text-xs text-gray-600 dark:text-gray-400 truncate"
+                                title={lastMessage.content}
+                              >
+                                {lastMessage.content}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {lastMessage.time}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell data-testid={`last-action-${store.id}`}>
+                        {store.lastActionAt
+                          ? new Date(store.lastActionAt).toLocaleDateString()
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {/* Details button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedStore(store)}
+                            data-testid={`action-details-${store.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-2 text-blue-600" />
+                            {t("store.table.details")}
+                          </Button>
+
+                          {/* Actions dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-1"
+                              >
+                                {t("store.table.actions")}
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {store.status === "pending_validation" && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleStoreAction(store, "validate")
+                                    }
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                    {t("stores.validateStore")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleStoreAction(store, "dismiss")
+                                    }
+                                  >
+                                    <X className="h-4 w-4 mr-2 text-red-600" />
+                                    {t("stores.dismiss")}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStoreAction(store, "request_documents")
+                                }
+                              >
+                                <FileText className="h-4 w-4 mr-2 text-blue-600" />
+                                {t("stores.requestDocuments")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStoreAction(
+                                    store,
+                                    "suspend_noncompliance"
+                                  )
+                                }
+                              >
+                                <Ban className="h-4 w-4 mr-2 text-orange-600" />
+                                {t("stores.suspendNonCompliance")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStoreAction(store, "suspend_documents")
+                                }
+                              >
+                                <Pause className="h-4 w-4 mr-2 text-purple-600" />
+                                {t("stores.suspendMissingDocuments")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleStoreAction(store, "suspend_fraud")
+                                }
+                              >
+                                <AlertTriangle className="h-4 w-4 mr-2 text-red-600" />
+                                {t("stores.suspendFraud")}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        {/* Send Message below row */}
+                        <div className="mt-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() =>
+                              handleStoreAction(store, "send_message")
+                            }
+                            data-testid={`action-send-message-${store.id}`}
+                          >
+                            <MessageCircle className="h-4 w-4 mr-2 text-blue-600" />
+                            {t("store.table.sendMessage")}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -927,13 +944,13 @@ async function getStoreStats() {
 
                 <FormField
                   control={form.control}
-                  name="categoryId"
+                  name="ownerEmail"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t("stores.ownerEmail")}</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value || ""}
                       >
                         <FormControl>
                           <SelectTrigger data-testid="input-owner-email">
@@ -955,12 +972,15 @@ async function getStoreStats() {
                                   user.role === "seller"
                               )
                               .map((user) => (
-                                <SelectItem key={user.id} value={user.id}>
+                                <SelectItem key={user.id} value={user.email}>
                                   {user.email}
                                 </SelectItem>
                               ))
                           ) : (
-                            <div className="px-2 py-1 text-sm text-gray-500"> {t("common.noitem")} </div>
+                            <div className="px-2 py-1 text-sm text-gray-500">
+                              {" "}
+                              {t("common.noitem")}{" "}
+                            </div>
                           )}
                         </SelectContent>
                       </Select>
@@ -1090,50 +1110,6 @@ async function getStoreStats() {
                     </FormItem>
                   )}
                 />
-
-                {/* <FormField
-                  control={form.control}
-                  name="ownerEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("stores.ownerEmail")}</FormLabel>
-                      <FormControl>
-                        <Input type="email" {...field} data-testid="input-owner-email" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                /> */}
-
-                {/* <FormField
-                  control={form.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("stores.category")}</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-category">
-                            <SelectValue
-                              placeholder={t("stores.selectCategory")}
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                /> */}
 
                 <FormField
                   control={form.control}

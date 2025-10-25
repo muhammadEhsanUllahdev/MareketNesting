@@ -80,37 +80,56 @@ export const ShipmentFilters: React.FC<ShipmentFiltersProps> = ({
               <SelectValue placeholder={t("shipment.filters.allStatuses")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t("shipment.filters.allStatuses")}</SelectItem>
-              <SelectItem value="delivered">{t("shipment.status.delivered")}</SelectItem>
-              <SelectItem value="in_transit">{t("shipment.status.inTransit")}</SelectItem>
-              <SelectItem value="pending">{t("shipment.status.pending")}</SelectItem>
-              <SelectItem value="delayed">{t("shipment.status.delayed")}</SelectItem>
-              <SelectItem value="returned">{t("shipment.status.returned")}</SelectItem>
+              <SelectItem value="all">
+                {t("shipment.filters.allStatuses")}
+              </SelectItem>
+              <SelectItem value="delivered">
+                {t("shipment.status.delivered")}
+              </SelectItem>
+              <SelectItem value="in_transit">
+                {t("shipment.status.inTransit")}
+              </SelectItem>
+              <SelectItem value="pending">
+                {t("shipment.status.pending")}
+              </SelectItem>
+              <SelectItem value="delayed">
+                {t("shipment.status.delayed")}
+              </SelectItem>
+              <SelectItem value="returned">
+                {t("shipment.status.returned")}
+              </SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={selectedCarrier} onValueChange={setSelectedCarrier}>
-  <SelectTrigger className="w-[180px]">
-    <SelectValue placeholder={t("shipment.filters.allCarriers")} />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">{t("shipment.filters.allCarriers")}</SelectItem>
-    <SelectItem value="maystro">{t("shipment.carriers.maystro")}</SelectItem>
-    <SelectItem value="yalidine">{t("shipment.carriers.yalidine")}</SelectItem>
-    <SelectItem value="noest">{t("shipment.carriers.noest")}</SelectItem>
-    {carriers.map(
-      (carrier) =>
-        carrier.name !== "Maystro Delivery" &&
-        carrier.name !== "Yalidine Express" &&
-        carrier.name !== "Noest DZ" && (
-          <SelectItem key={carrier.id} value={carrier.id || ""}>
-            {carrier.name}
-          </SelectItem>
-        )
-    )}
-  </SelectContent>
-</Select>
-
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={t("shipment.filters.allCarriers")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {t("shipment.filters.allCarriers")}
+              </SelectItem>
+              <SelectItem value="maystro">
+                {t("shipment.carriers.maystro")}
+              </SelectItem>
+              <SelectItem value="yalidine">
+                {t("shipment.carriers.yalidine")}
+              </SelectItem>
+              <SelectItem value="noest">
+                {t("shipment.carriers.noest")}
+              </SelectItem>
+              {carriers.map(
+                (carrier) =>
+                  carrier.name !== "Maystro Delivery" &&
+                  carrier.name !== "Yalidine Express" &&
+                  carrier.name !== "Noest DZ" && (
+                    <SelectItem key={carrier.id} value={carrier.id || ""}>
+                      {carrier.name}
+                    </SelectItem>
+                  )
+              )}
+            </SelectContent>
+          </Select>
 
           <Button
             variant="outline"
@@ -139,10 +158,14 @@ export const ShipmentFilters: React.FC<ShipmentFiltersProps> = ({
               onValueChange={setSelectedLocation}
             >
               <SelectTrigger>
-                <SelectValue placeholder={t("shipment.filters.allDestinations")} />
+                <SelectValue
+                  placeholder={t("shipment.filters.allDestinations")}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("shipment.filters.allDestinations")}</SelectItem>
+                <SelectItem value="all">
+                  {t("shipment.filters.allDestinations")}
+                </SelectItem>
                 {ALGERIA_WILAYAS.map((wilaya) => (
                   <SelectItem key={wilaya} value={wilaya.toLowerCase()}>
                     {wilaya}
@@ -188,9 +211,15 @@ export const ShipmentFilters: React.FC<ShipmentFiltersProps> = ({
                 <SelectValue placeholder={t("shipment.filters.allServices")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("shipment.filters.allServices")}</SelectItem>
-                <SelectItem value="standard">{t("shipment.filters.standard")}</SelectItem>
-                <SelectItem value="express">{t("shipment.filters.express")}</SelectItem>
+                <SelectItem value="all">
+                  {t("shipment.filters.allServices")}
+                </SelectItem>
+                <SelectItem value="standard">
+                  {t("shipment.filters.standard")}
+                </SelectItem>
+                <SelectItem value="express">
+                  {t("shipment.filters.express")}
+                </SelectItem>
                 <SelectItem value="cod">{t("shipment.filters.cod")}</SelectItem>
               </SelectContent>
             </Select>

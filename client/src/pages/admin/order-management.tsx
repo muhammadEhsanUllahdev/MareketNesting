@@ -131,51 +131,52 @@ export default function AdminOrderManagement() {
     orderNumber: "",
   });
 
-  // Fetch all orders (admin can see all orders)
-  const { data: orders = [], isLoading } = useQuery<Order[]>({
-    queryKey: ["/api/orders", "admin"],
-    queryFn: async () => {
-      const response = await fetch("/api/orders", {
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch orders");
-      return response.json();
-    },
-  });
+// Fetch all orders (admin can see all orders)
+const { data: orders = [], isLoading } = useQuery<Order[]>({
+  queryKey: ["/api/orders", "admin"],
+  queryFn: async () => {
+    const response = await fetch("/api/orders", {
+      credentials: "include",
+    });
+    if (!response.ok) throw new Error(t("orders.fetchError"));
+    return response.json();
+  },
+});
 
-  // Update order status mutation
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({
-      orderId,
-      status,
-    }: {
-      orderId: string;
-      status: string;
-    }) => {
-      const response = await fetch(`/api/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ status }),
-      });
-      if (!response.ok) throw new Error("Failed to update order status");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      toast({
-        title: "Order Updated",
-        description: "Order status has been updated successfully.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update order status.",
-        variant: "destructive",
-      });
-    },
-  });
+// Update order status mutation
+const updateStatusMutation = useMutation({
+  mutationFn: async ({
+    orderId,
+    status,
+  }: {
+    orderId: string;
+    status: string;
+  }) => {
+    const response = await fetch(`/api/orders/${orderId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status }),
+    });
+    if (!response.ok) throw new Error(t("orders.updateError"));
+    return response.json();
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+    toast({
+      title: t("orders.updateSuccessTitle"),
+      description: t("orders.updateSuccessDescription"),
+    });
+  },
+  onError: () => {
+    toast({
+      title: t("orders.errorTitles"),
+      description: t("orders.updateErrorDescription"),
+      variant: "destructive",
+    });
+  },
+});
+
 
   // Filter orders based on search term and status
   const filteredOrders = orders.filter((order: Order) => {
@@ -197,46 +198,46 @@ export default function AdminOrderManagement() {
 
   // Get status badge with appropriate styling
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
-            <Clock className="w-3 h-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      case "confirmed":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Confirmed
-          </Badge>
-        );
-      case "shipped":
-        return (
-          <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">
-            <Truck className="w-3 h-3 mr-1" />
-            Shipped
-          </Badge>
-        );
-      case "delivered":
-        return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-            <Package className="w-3 h-3 mr-1" />
-            Delivered
-          </Badge>
-        );
-      case "cancelled":
-        return (
-          <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
-            <XCircle className="w-3 h-3 mr-1" />
-            Cancelled
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+  switch (status) {
+    case "pending":
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+          <Clock className="w-3 h-3 mr-1" />
+          {t("order.status.pending")}
+        </Badge>
+      );
+    case "confirmed":
+      return (
+        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          {t("order.status.confirmed")}
+        </Badge>
+      );
+    case "shipped":
+      return (
+        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+          <Truck className="w-3 h-3 mr-1" />
+          {t("order.status.shipped")}
+        </Badge>
+      );
+    case "delivered":
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+          <Package className="w-3 h-3 mr-1" />
+          {t("order.status.delivered")}
+        </Badge>
+      );
+    case "cancelled":
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
+          <XCircle className="w-3 h-3 mr-1" />
+          {t("order.status.cancelled")}
+        </Badge>
+      );
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
 
   // Handle order status update
   const handleStatusUpdate = async (
@@ -269,32 +270,32 @@ export default function AdminOrderManagement() {
   const handleViewOrder = (order: Order) => {
     // Transform order data to match OrderDetailsModal interface
     const transformedOrder = {
-      id: order.id,
-      date: order.createdAt,
-      customer: {
-        name: order.shippingAddress?.fullName
-          ? order.shippingAddress.fullName
-          : order.shippingAddress.fullName || "Unknown User",
-        avatar: "", // Default empty avatar
-      },
-      orderItems:
-        order.items?.map((item) => ({
-          id: item.id,
-          name: item.product?.name || "Unknown Product",
-          description: item.product?.sku || "",
-          quantity: item.quantity,
-          price: item.unitPrice,
-        })) || [],
-      totalAmount: order.totalAmount,
-      status: order.status,
-      paymentStatus:
-        order.status === "delivered"
-          ? "Paid"
-          : order.status === "cancelled"
-          ? "Refunded"
-          : "Pending",
-      notes: `Shipping Address: ${order.shippingAddress.street}, ${order.shippingAddress.city}, ${order.shippingAddress.country}`,
-    };
+  id: order.id,
+  date: order.createdAt,
+  customer: {
+    name: order.shippingAddress?.fullName
+      ? order.shippingAddress.fullName
+      : order.shippingAddress.fullName || t("order.customer.unknown"),
+    avatar: "", // Default empty avatar
+  },
+  orderItems:
+    order.items?.map((item) => ({
+      id: item.id,
+      name: item.product?.name || t("order.product.unknown"),
+      description: item.product?.sku || "",
+      quantity: item.quantity,
+      price: item.unitPrice,
+    })) || [],
+  totalAmount: order.totalAmount,
+  status: order.status,
+  paymentStatus:
+    order.status === "delivered"
+      ? t("order.paymentStatus.paid")
+      : order.status === "cancelled"
+      ? t("order.paymentStatus.refunded")
+      : t("order.paymentStatus.pending"),
+  notes: `${t("order.notes.shippingAddress")}: ${order.shippingAddress.street}, ${order.shippingAddress.city}, ${order.shippingAddress.country}`,
+};
 
     setSelectedOrder(transformedOrder as any);
     setShowOrderDetails(true);
@@ -341,9 +342,10 @@ export default function AdminOrderManagement() {
     document.body.removeChild(link);
 
     toast({
-      title: "Export Complete",
-      description: "Orders data has been exported to CSV.",
-    });
+  title: t("orderTable.exportComplete"),
+  description: t("orderTable.exportedToCSV"),
+});
+
   };
 
   if (isLoading) {
@@ -355,7 +357,7 @@ export default function AdminOrderManagement() {
           </div>
           <Card>
             <CardContent className="p-6">
-              <div className="text-center py-12">Loading orders...</div>
+              <div className="text-center py-12">{t("orderTable.loadingOrders")}</div>
             </CardContent>
           </Card>
         </div>
@@ -510,7 +512,8 @@ export default function AdminOrderManagement() {
                                     WORD-{order.id.slice(-5)}
                                   </div>
                                   <div className="text-xs text-gray-500">
-                                    {order.items?.length || 0} articles
+                                    {order.items?.length || 0}{" "}
+                                    {t("orderTable.articles")}
                                   </div>
                                 </div>
                               </div>
@@ -522,10 +525,11 @@ export default function AdminOrderManagement() {
                                   order.shippingAddress.lastName
                                     ? `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`
                                     : order.shippingAddress.fullName ||
-                                      "Unknown User"}
+                                      t("orderTable.unknownUser")}
                                 </div>
                                 <div className="text-sm text-gray-500">
-                                  {order.shippingAddress?.email || "No email"}
+                                  {order.shippingAddress?.email ||
+                                    t("orderTable.noEmail")}
                                 </div>
                               </div>
                             </TableCell>
@@ -546,15 +550,15 @@ export default function AdminOrderManagement() {
                                 }
                               >
                                 {order.status === "pending"
-                                  ? "On hold"
+                                  ? t("orderTable.onHold")
                                   : order.status === "in_preparation"
-                                  ? "In processing"
+                                  ? t("orderTable.inProcessing")
                                   : order.status === "in_delivery"
-                                  ? "Shipped"
+                                  ? t("orderTable.shipped")
                                   : order.status === "delivered"
-                                  ? "Book"
+                                  ? t("orderTable.book")
                                   : order.status === "cancelled"
-                                  ? "Cancelled"
+                                  ? t("orderTable.cancelled")
                                   : order.status}
                               </Badge>
                             </TableCell>
@@ -569,12 +573,12 @@ export default function AdminOrderManagement() {
                                 }
                               >
                                 {order.status === "delivered"
-                                  ? "Paid"
+                                  ? t("orderTable.paid")
                                   : order.status === "cancelled"
-                                  ? "Refunded"
+                                  ? t("orderTable.refunded")
                                   : order.status === "pending"
-                                  ? "On hold"
-                                  : "Paid"}
+                                  ? t("orderTable.onHold")
+                                  : t("orderTable.paid")}
                               </Badge>
                             </TableCell>
                             <TableCell className="font-semibold">
@@ -600,8 +604,8 @@ export default function AdminOrderManagement() {
                                 <Badge variant="outline" className="text-xs">
                                   {order.status === "in_delivery" ||
                                   order.status === "delivered"
-                                    ? "Express"
-                                    : "Standard"}
+                                    ? t("orderTable.express")
+                                    : t("orderTable.standard")}
                                 </Badge>
                                 <ChevronDown className="h-3 w-3" />
                               </div>
@@ -626,7 +630,7 @@ export default function AdminOrderManagement() {
                                     order.shippingAddress.lastName
                                       ? `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`
                                       : order.shippingAddress.fullName ||
-                                        "Unknown User",
+                                        t("orderTable.unknownUser"),
                                   customer_email:
                                     order.shippingAddress.email || "",
                                   status: order.status as any,
@@ -657,7 +661,7 @@ export default function AdminOrderManagement() {
                                         product_id: item.productId,
                                         product_name:
                                           item.product?.name ||
-                                          "Unknown Product",
+                                          t("orderTable.unknownProduct"),
                                         unit_price: item.unitPrice,
                                         total_price: item.totalPrice,
                                         quantity: item.quantity,
@@ -668,80 +672,6 @@ export default function AdminOrderManagement() {
                                 }}
                                 onUpdateStatus={handleStatusUpdate}
                               />
-                              {/* <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    data-testid={`button-order-actions-${order.id}`}
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => handleViewOrder(order)}
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  {order.status === "pending" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleStatusUpdate(
-                                          order.id,
-                                          "in_preparation"
-                                        )
-                                      }
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-2" />
-                                      Confirm Order
-                                    </DropdownMenuItem>
-                                  )}
-                                  {order.status === "in_preparation" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleStatusUpdate(
-                                          order.id,
-                                          "in_delivery"
-                                        )
-                                      }
-                                    >
-                                      <Truck className="h-4 w-4 mr-2" />
-                                      Mark as Shipped
-                                    </DropdownMenuItem>
-                                  )}
-                                  {order.status === "in_delivery" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleStatusUpdate(
-                                          order.id,
-                                          "delivered"
-                                        )
-                                      }
-                                    >
-                                      <Package className="h-4 w-4 mr-2" />
-                                      Mark as Delivered
-                                    </DropdownMenuItem>
-                                  )}
-                                  {["pending", "in_preparation"].includes(
-                                    order.status
-                                  ) && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleStatusUpdate(
-                                          order.id,
-                                          "cancelled"
-                                        )
-                                      }
-                                      className="text-red-600"
-                                    >
-                                      <XCircle className="h-4 w-4 mr-2" />
-                                      Cancel Order
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu> */}
                             </TableCell>
                           </TableRow>
 

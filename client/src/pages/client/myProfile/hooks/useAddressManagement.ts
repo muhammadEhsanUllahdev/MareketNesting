@@ -1,57 +1,8 @@
-// import { useState } from "react";
-// import { v4 as uuidv4 } from "uuid";
-// import { Address } from "../Profile";
-// export const useAddressManagement = (initialAddresses: Address[] = []) => {
-//   const [addresses, setAddresses] = useState<Address[]>(initialAddresses);
-
-//   const handleAddAddress = (newAddress: Omit<Address, "id">) => {
-//     const addressWithId: Address = {
-//       ...newAddress,
-//       id: uuidv4(),
-//     };
-//     setAddresses([...addresses, addressWithId]);
-//   };
-
-//   const handleUpdateAddress = (id: string, updatedAddress: Address) => {
-//     setAddresses(
-//       addresses.map((address) => (address.id === id ? updatedAddress : address))
-//     );
-//   };
-
-//   const handleDeleteAddress = (id: string) => {
-//     setAddresses(addresses.filter((address) => address.id !== id));
-//   };
-
-//   const handleSetDefault = (id: string) => {
-//     setAddresses(
-//       addresses.map((address) => ({
-//         ...address,
-//         is_default: address.id === id,
-//       }))
-//     );
-//   };
-
-//   const handleSetDelivery = (id: string) => {
-//     setAddresses(
-//       addresses.map((address) => ({
-//         ...address,
-//         is_delivery: address.id === id,
-//       }))
-//     );
-//   };
-
-//   return {
-//     addresses,
-//     handleAddAddress,
-//     handleUpdateAddress,
-//     handleDeleteAddress,
-//     handleSetDefault,
-//     handleSetDelivery,
-//   };
-// };
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 export function useAddressManagement() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data: addresses = [], isLoading } = useQuery({
@@ -60,7 +11,7 @@ export function useAddressManagement() {
       const res = await fetch("/api/user/addresses", {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch addresses");
+      if (!res.ok) throw new Error(t("address.fetchError"));
       return res.json();
     },
   });
@@ -73,7 +24,7 @@ export function useAddressManagement() {
         credentials: "include",
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to add address");
+      if (!res.ok) throw new Error(t("address.addError"));
       return res.json();
     },
     onSuccess: () => {
@@ -89,7 +40,7 @@ export function useAddressManagement() {
         credentials: "include",
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to update address");
+      if (!res.ok) throw new Error(t("address.updateError"));
       return res.json();
     },
     onSuccess: () => {
@@ -103,7 +54,7 @@ export function useAddressManagement() {
         method: "DELETE",
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to delete address");
+      if (!res.ok) throw new Error(t("address.deleteError"));
       return res.json();
     },
     onSuccess: () => {

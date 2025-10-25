@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Link } from "wouter";
 
@@ -16,47 +16,48 @@ export default function CartPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: cartItems = [], isLoading } = useQuery({
-    queryKey: ["/api/cart"],
-    queryFn: async () => {
-      const res = await fetch("/api/cart", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch cart");
-      return res.json();
-    },
-    enabled: !!user,
-  });
+ const { data: cartItems = [], isLoading } = useQuery({
+  queryKey: ["/api/cart"],
+  queryFn: async () => {
+    const res = await fetch("/api/cart", { credentials: "include" });
+    if (!res.ok) throw new Error(t("cart.fetchError"));
+    return res.json();
+  },
+  enabled: !!user,
+});
 
-  const updateQuantityMutation = useMutation({
-    mutationFn: async ({
-      productId,
-      quantity,
-    }: {
-      productId: string;
-      quantity: number;
-    }) => {
-      const res = await fetch(`/api/cart/${productId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ quantity }),
-      });
-      if (!res.ok) throw new Error("Failed to update");
-      return res.json();
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/cart"] }),
-  });
+const updateQuantityMutation = useMutation({
+  mutationFn: async ({
+    productId,
+    quantity,
+  }: {
+    productId: string;
+    quantity: number;
+  }) => {
+    const res = await fetch(`/api/cart/${productId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ quantity }),
+    });
+    if (!res.ok) throw new Error(t("cart.updateError"));
+    return res.json();
+  },
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/cart"] }),
+});
 
-  const removeItemMutation = useMutation({
-    mutationFn: async (productId: string) => {
-      const res = await fetch(`/api/cart/${productId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to remove");
-      return res.json();
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/cart"] }),
-  });
+const removeItemMutation = useMutation({
+  mutationFn: async (productId: string) => {
+    const res = await fetch(`/api/cart/${productId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error(t("cart.removeError"));
+    return res.json();
+  },
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/cart"] }),
+});
+
 
   const updateQuantity = (id: string, qty: number) => {
     if (qty < 1) return;
@@ -85,7 +86,18 @@ export default function CartPage() {
           {isLoading ? (
             <p>{t("common.loading")}</p>
           ) : cartItems.length === 0 ? (
-            <p>{t("cart.empty.title")}</p>
+            // <p>{t("cart.empty.title")}</p>
+            <div className="text-center py-16">
+              <span className="h-16 w-16 text-gray-300 mx-auto mb-4 inline-flex items-center justify-center">
+                <ShoppingCart size={64} />
+              </span>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                {t("cart.empty.title")}
+              </h2>
+              <p className="text-gray-600 mb-8">
+                Add Some Products to Get Started.
+              </p>
+            </div>
           ) : (
             cartItems.map((item) => (
               <Card key={item.id}>
@@ -169,13 +181,10 @@ export default function CartPage() {
                 </div>
               </div>
               <Link href="/checkout">
-                <Button
-                className="w-full mt-4"
-                size="lg">
-                {t("cart.checkout")}
-              </Button>
+                <Button className="w-full mt-4" size="lg">
+                  {t("cart.checkout")}
+                </Button>
               </Link>
-            
             </Card>
           </div>
         )}

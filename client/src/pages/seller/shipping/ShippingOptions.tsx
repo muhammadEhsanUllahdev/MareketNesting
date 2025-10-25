@@ -95,7 +95,8 @@ export const ShippingOptions: React.FC = () => {
       await Promise.all(
         carriers.map(async (c) => {
           const res = await fetch(`/api/carriers/${c.id}/options`);
-          if (!res.ok) throw new Error(t("error.failedToFetchOptions", { id: c.id }));
+          if (!res.ok)
+            throw new Error(t("error.failedToFetchOptions", { id: c.id }));
           const opts: ShippingOption[] = await res.json();
           map[c.id] = opts || [];
         })
@@ -126,14 +127,17 @@ export const ShippingOptions: React.FC = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["shippingOptions"] });
-     toast({ title: t("toast.optionAdded"), description: t("toast.optionSaved") });
+      toast({
+        title: t("toast.optionAdded"),
+        description: t("toast.optionSaved"),
+      });
     },
     onError: () => {
       toast({
-    title: t("toast.error"),
-    description: t("toast.failedToAddOption"),
-    variant: "destructive",
-  });
+        title: t("toast.error"),
+        description: t("toast.failedToAddOption"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -152,11 +156,11 @@ export const ShippingOptions: React.FC = () => {
       toast({ title: t("toast.optionUpdated") });
     },
     onError: () => {
-     toast({
-  title: t("toast.error"),
-  description: t("toast.failedToUpdate"),
-  variant: "destructive",
-});
+      toast({
+        title: t("toast.error"),
+        description: t("toast.failedToUpdate"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -174,10 +178,10 @@ export const ShippingOptions: React.FC = () => {
     },
     onError: () => {
       toast({
-  title: t("toast.error"),
-  description: t("toast.failedToDelete"),
-  variant: "destructive",
-});
+        title: t("toast.error"),
+        description: t("toast.failedToDelete"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -361,8 +365,8 @@ export const ShippingOptions: React.FC = () => {
   if (carriersError || optionsError) {
     return (
       <div className="py-10 text-center text-red-600">
-  {t("error.failedToLoadData")}
-</div>
+        {t("error.failedToLoadData")}
+      </div>
     );
   }
 
@@ -813,7 +817,10 @@ export const ShippingOptions: React.FC = () => {
                     </div>
 
                     {opts.length === 0 ? (
-                      <p className="text-sm text-gray-500"> {t("text.noOptionConfigured")} </p>
+                      <p className="text-sm text-gray-500">
+                        {" "}
+                        {t("text.noOptionConfigured")}{" "}
+                      </p>
                     ) : (
                       <div className="space-y-3 text-sm">
                         {opts.map((option) => {
@@ -845,7 +852,9 @@ export const ShippingOptions: React.FC = () => {
                                         : "bg-gray-100 text-gray-800"
                                     }
                                   >
-                                    {isActive ? t("status.active") : t("status.inactive")}
+                                    {isActive
+                                      ? t("status.active")
+                                      : t("status.inactive")}
                                   </Badge>
                                 </div>
                                 <div className="text-xs text-gray-500">
@@ -861,7 +870,7 @@ export const ShippingOptions: React.FC = () => {
                                     size="sm"
                                     onClick={() => openEditModal(option)}
                                   >
-                                   {t("button.edit")}
+                                    {t("button.edit")}
                                   </Button>
                                   <Button
                                     variant="outline"
@@ -925,8 +934,8 @@ export const ShippingOptions: React.FC = () => {
         <Button
           onClick={() =>
             toast({
-               title: t("toast.settingsSaved"),
-  description: t("toast.settingsUpdated"),
+              title: t("toast.settingsSaved"),
+              description: t("toast.settingsUpdated"),
             })
           }
           className="flex items-center gap-2"
@@ -939,11 +948,11 @@ export const ShippingOptions: React.FC = () => {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-           <DialogTitle>
-  {editingOption
-    ? t("dialog.editOption")
-    : t("dialog.newShippingOption")}
-</DialogTitle>
+            <DialogTitle>
+              {editingOption
+                ? t("dialog.editOption")
+                : t("dialog.newShippingOption")}
+            </DialogTitle>
           </DialogHeader>
 
           <form
@@ -1079,7 +1088,11 @@ export const ShippingOptions: React.FC = () => {
                     setOptionForm({ ...optionForm, isActive: v })
                   }
                 />
-                <span>{optionForm.isActive ? t("status.active") : t("status.inactive")}</span>
+                <span>
+                  {optionForm.isActive
+                    ? t("status.active")
+                    : t("status.inactive")}
+                </span>
               </div>
             </div>
 

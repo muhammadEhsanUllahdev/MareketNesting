@@ -160,9 +160,20 @@ export function serveStatic(app: Express) {
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
   }
-
+console.log("✅ serveStatic() called — static files should be served from:", distPath);
   app.use(express.static(distPath));
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // app.use("*", (_req, res) => {
+  //   res.sendFile(path.resolve(distPath, "index.html"));
+  // });
+  app.get("*", (req, res, next) => {
+  const indexFile = path.join(distPath, "index.html");
+  res.sendFile(indexFile, (err) => {
+    if (err) {
+      console.error("❌ Failed to send index.html:", err);
+      next(err);
+    }
   });
+});
 }
+
+

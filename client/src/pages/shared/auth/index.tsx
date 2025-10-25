@@ -22,66 +22,66 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Store, Users, ShoppingBag, Shield } from "lucide-react";
 
-const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+// const loginSchema = z.object({
+//   username: z.string().min(1, "Username is required"),
+//   password: z.string().min(6, "Password must be at least 6 characters"),
+// });
 
-const registerSchema = z
-  .object({
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    role: z.enum(["client", "seller"]).default("client"),
-    // Seller-specific fields (conditional)
-    storeName: z.string().optional(),
-    storeDescription: z.string().optional(),
-    businessType: z.enum(["individual", "company", "partnership"]).optional(),
-    // businessAddress: z.string().optional(),
-    businessAddressStreet: z.string().optional(),
-    businessAddressCity: z.string().optional(),
-    businessAddressZipCode: z.string().optional(),
-    businessAddressCountry: z.string().optional(),
-    businessPhone: z.string().optional(),
-    businessWebsite: z.string().url().optional().or(z.literal("")),
-    taxId: z.string().optional(),
-    avatar: z.any().optional(), // For file upload
-  })
-  .refine(
-    (data) => {
-      if (data.role === "seller") {
-        return data.storeName && data.storeName.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Store name is required for sellers",
-      path: ["storeName"],
-    }
-  );
+// const registerSchema = z
+//   .object({
+//     username: z.string().min(3, "Username must be at least 3 characters"),
+//     email: z.string().email("Invalid email address"),
+//     password: z.string().min(6, "Password must be at least 6 characters"),
+//     firstName: z.string().min(1, "First name is required"),
+//     lastName: z.string().min(1, "Last name is required"),
+//     role: z.enum(["client", "seller"]).default("client"),
+//     // Seller-specific fields (conditional)
+//     storeName: z.string().optional(),
+//     storeDescription: z.string().optional(),
+//     businessType: z.enum(["individual", "company", "partnership"]).optional(),
+//     // businessAddress: z.string().optional(),
+//     businessAddressStreet: z.string().optional(),
+//     businessAddressCity: z.string().optional(),
+//     businessAddressZipCode: z.string().optional(),
+//     businessAddressCountry: z.string().optional(),
+//     businessPhone: z.string().optional(),
+//     businessWebsite: z.string().url().optional().or(z.literal("")),
+//     taxId: z.string().optional(),
+//     avatar: z.any().optional(), // For file upload
+//   })
+//   .refine(
+//     (data) => {
+//       if (data.role === "seller") {
+//         return data.storeName && data.storeName.length > 0;
+//       }
+//       return true;
+//     },
+//     {
+//       message: "Store name is required for sellers",
+//       path: ["storeName"],
+//     }
+//   );
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email("Invalid email address"),
-});
+// const forgotPasswordSchema = z.object({
+//   email: z.string().email("Invalid email address"),
+// });
 
-const resetPasswordSchema = z
-  .object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z
-      .string()
-      .min(6, "Password must be at least 6 characters"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+// const resetPasswordSchema = z
+//   .object({
+//     password: z.string().min(6, "Password must be at least 6 characters"),
+//     confirmPassword: z
+//       .string()
+//       .min(6, "Password must be at least 6 characters"),
+//   })
+//   .refine((data) => data.password === data.confirmPassword, {
+//     message: "Passwords don't match",
+//     path: ["confirmPassword"],
+//   });
 
-type LoginFormData = z.infer<typeof loginSchema>;
-type RegisterFormData = z.infer<typeof registerSchema>;
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+// type LoginFormData = z.infer<typeof loginSchema>;
+// type RegisterFormData = z.infer<typeof registerSchema>;
+// type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+// type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export default function AuthPage() {
   const { t } = useTranslation();
@@ -96,6 +96,69 @@ export default function AuthPage() {
   // Get reset token from URL
   const urlParams = new URLSearchParams(window.location.search);
   const resetToken = urlParams.get("token");
+  type LoginFormData = z.infer<typeof loginSchema>;
+type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
+
+
+  const loginSchema = z.object({
+    username: z.string().min(1, t("auth.validation.usernameRequired")),
+    password: z.string().min(6, t("auth.validation.passwordMinLength")),
+  });
+  const resetPasswordSchema = z
+  .object({
+    password: z.string().min(6, t("auth.validation.passwordMinLength")),
+    confirmPassword: z
+      .string()
+      .min(6, t("auth.validation.passwordMinLength")),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: t("auth.validation.passwordsDoNotMatch"),
+    path: ["confirmPassword"],
+  });
+
+  const forgotPasswordSchema = z.object({
+  email: z.string().email(t("auth.validation.invalidEmail")),
+});
+
+const registerSchema = z
+  .object({
+    username: z.string().min(3, t("auth.validation.usernameMin")),
+    email: z.string().email(t("auth.validation.invalidEmail")),
+    password: z.string().min(6, t("auth.validation.passwordMin")),
+    firstName: z.string().min(1, t("auth.validation.firstNameRequired")),
+    lastName: z.string().min(1, t("auth.validation.lastNameRequired")),
+    role: z.enum(["client", "seller"]).default("client"),
+    storeName: z.string().optional(),
+    storeDescription: z.string().optional(),
+    businessType: z
+      .enum(["individual", "company", "partnership"])
+      .optional(),
+    businessAddressStreet: z.string().optional(),
+    businessAddressCity: z.string().optional(),
+    businessAddressZipCode: z.string().optional(),
+    businessAddressCountry: z.string().optional(),
+    businessPhone: z.string().optional(),
+    businessWebsite: z.string().url().optional().or(z.literal("")),
+    taxId: z.string().optional(),
+    avatar: z.any().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.role === "seller") {
+        return data.storeName && data.storeName.length > 0;
+      }
+      return true;
+    },
+    {
+      message: t("auth.validation.storeNameRequiredForSellers"),
+      path: ["storeName"],
+    }
+  );
+
+
+
 
   // Forgot password mutation
   const forgotPasswordMutation = useMutation({

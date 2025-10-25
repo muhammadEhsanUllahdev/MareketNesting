@@ -59,15 +59,8 @@ import {
 
 // Form schema for creating users
 // const { t } = useTranslation();
-const createUserSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email address"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["client", "seller", "admin"]),
-  isActive: z.boolean().default(true),
-});
+
+
 
 
 export default function UserManagement() {
@@ -82,6 +75,15 @@ export default function UserManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [sellerStatusFilter, setSellerStatusFilter] = useState("all");
+  const createUserSchema = z.object({
+  firstName: z.string().min(1, t("validation.firstNameRequired")),
+  lastName: z.string().min(1, t("validation.lastNameRequired")),
+  email: z.string().email(t("validation.invalidEmail")),
+  username: z.string().min(3, t("validation.usernameMin")),
+  password: z.string().min(6, t("validation.passwordMin")),
+  role: z.enum(["client", "seller", "admin"]),
+  isActive: z.boolean().default(true),
+});
 
   // Form for adding new users
   const form = useForm<z.infer<typeof createUserSchema>>({

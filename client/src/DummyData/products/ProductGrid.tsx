@@ -91,21 +91,49 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
   }));
 
   return (
+    // <>
+    //   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 md:gap-7">
+    //     {productsWithImages.map((product) => (
+    //       <div
+    //         key={product.id}
+    //         className="animate-fade-in transform hover:-translate-y-1 transition-transform duration-300"
+    //       >
+    //         <ProductCard
+    //           product={product}
+    //           onSelect={handleProductSelect}
+    //           compact={isMobile}
+    //         />
+    //       </div>
+    //     ))}
+    //   </div>
+
+    //   <ProductDetails
+    //     product={selectedProduct}
+    //     open={!!selectedProduct}
+    //     onClose={handleCloseDetails}
+    //   />
+    // </>
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 md:gap-7">
-        {productsWithImages.map((product) => (
-          <div
-            key={product.id}
-            className="animate-fade-in transform hover:-translate-y-1 transition-transform duration-300"
-          >
-            <ProductCard
-              product={product}
-              onSelect={handleProductSelect}
-              compact={isMobile}
-            />
-          </div>
-        ))}
-      </div>
+      {products.length === 0 ? (
+        <div className="text-center py-10 text-gray-500 text-lg font-medium">
+          {t("No products existing the selected criteria.")}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 md:gap-7">
+          {productsWithImages.map((product) => (
+            <div
+              key={product.id}
+              className="animate-fade-in transform hover:-translate-y-1 transition-transform duration-300"
+            >
+              <ProductCard
+                product={product}
+                onSelect={handleProductSelect}
+                compact={isMobile}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       <ProductDetails
         product={selectedProduct}

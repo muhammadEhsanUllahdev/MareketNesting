@@ -14,6 +14,7 @@ import {
   CreditCard,
   LucideIcon,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface MonthlyData {
   month: string;
@@ -44,6 +45,8 @@ interface StatCard {
 }
 
 const ClientStatistics = () => {
+  const { t } = useTranslation();
+
   const {
     data: stats,
     isLoading,
@@ -52,48 +55,48 @@ const ClientStatistics = () => {
     queryKey: ["stats"],
     queryFn: async () => {
       const res = await fetch(`/api/client/statistics`);
-      if (!res.ok) throw new Error("Failed to fetch stats data");
+      if (!res.ok) throw new Error(t("clientStats.fetchError"));
       return res.json();
     },
   });
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Statistiques">
-        <p>Chargement des statistiques...</p>
+      <DashboardLayout title={t("clientStats.title")}>
+        <p>{t("clientStats.loading")}</p>
       </DashboardLayout>
     );
   }
 
   if (error || !stats) {
     return (
-      <DashboardLayout title="Statistiques">
-        <p>Erreur lors du chargement des données.</p>
+      <DashboardLayout title={t("clientStats.title")}>
+        <p>{t("clientStats.error")}</p>
       </DashboardLayout>
     );
   }
 
   const statCards: StatCard[] = [
     {
-      title: "Total des commandes",
+      title: t("clientStats.totalOrders"),
       value: stats.totalOrders,
       change: "+12%",
       icon: ShoppingBag,
     },
     {
-      title: "Montant dépensé",
+      title: t("clientStats.totalSpent"),
       value: `${stats.totalSpent.toLocaleString()} DA`,
       change: "+8%",
       icon: CreditCard,
     },
     {
-      title: "Articles favoris",
+      title: t("clientStats.favoriteItems"),
       value: stats.favoriteItems,
       change: "+3",
       icon: Heart,
     },
     {
-      title: "Note moyenne donnée",
+      title: t("clientStats.averageRating"),
       value: `${stats.averageRating}/5`,
       change: "↗",
       icon: Star,
@@ -101,11 +104,11 @@ const ClientStatistics = () => {
   ];
 
   return (
-    <DashboardLayout title="Statistiques">
+    <DashboardLayout title={t("clientStats.title")}>
       <div className="space-y-6">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Mes Statistiques</h1>
+          <h1 className="text-2xl font-bold">{t("clientStats.myStats")}</h1>
         </div>
 
         {/* Top Stats */}
@@ -136,7 +139,7 @@ const ClientStatistics = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Activité mensuelle
+                {t("clientStats.monthlyActivity")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -153,7 +156,7 @@ const ClientStatistics = () => {
                         </span>
                       </div>
                       <div>
-                        <p className="font-medium">{data.orders} commandes</p>
+                        <p className="font-medium">{data.orders} {t("clientStats.orders")}</p>
                         <p className="text-sm text-muted-foreground">
                           {data.amount.toLocaleString()} DA
                         </p>
@@ -171,7 +174,7 @@ const ClientStatistics = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Répartition par catégorie
+                {t("clientStats.categoryBreakdown")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -186,7 +189,7 @@ const ClientStatistics = () => {
                     </div>
                     <Progress value={category.percentage} className="h-2" />
                     <div className="text-xs text-muted-foreground text-right">
-                      {category.percentage}% du total
+                      {category.percentage}% {t("clientStats.total")}
                     </div>
                   </div>
                 ))}
@@ -194,34 +197,6 @@ const ClientStatistics = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Quick Overview */}
-        {/* <Card>
-          <CardHeader>
-            <CardTitle>Aperçu rapide</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <ShoppingBag className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-blue-600">7.8</p>
-                <p className="text-sm text-blue-600">
-                  Commandes/mois en moyenne
-                </p>
-              </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <CreditCard className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-green-600">20,900 DA</p>
-                <p className="text-sm text-green-600">Panier moyen</p>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <Star className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-purple-600">98%</p>
-                <p className="text-sm text-purple-600">Satisfaction client</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card> */}
       </div>
     </DashboardLayout>
   );

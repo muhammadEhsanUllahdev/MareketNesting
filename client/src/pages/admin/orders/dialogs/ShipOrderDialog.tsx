@@ -77,6 +77,7 @@ const ShipOrderDialog = ({
       setTrackingNumber("");
       setNotes("");
       queryClient.invalidateQueries({ queryKey: ["sellerOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
     },
     onError: (error: any) => {
       toast({
@@ -181,8 +182,10 @@ const ShipOrderDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("shipDialog.cancel")}
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? t("shipDialog.submitting") : t("shipDialog.submit")}
+          <Button onClick={handleSubmit} disabled={shipOrderMutation.isPending}>
+            {shipOrderMutation.isPending
+              ? t("shipDialog.submitting")
+              : t("shipDialog.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

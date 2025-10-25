@@ -37,25 +37,24 @@ export default function ClientDashboard() {
     refetchInterval: 30000,
   });
 
-  
-const { data: dashboardStats, isLoading } = useQuery({
-  queryKey: ["/api/dashboard/client"],
-  queryFn: async () => {
-    const response = await fetch("/api/dashboard/client", {
-      credentials: "include",
-    });
-    if (!response.ok) throw new Error(t("dashboard.errorFetchStats"));
-    return response.json();
-  },
-});
+  const { data: dashboardStats, isLoading } = useQuery({
+    queryKey: ["/api/dashboard/client"],
+    queryFn: async () => {
+      const response = await fetch("/api/dashboard/client", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(t("dashboard.errorFetchStats"));
+      return response.json();
+    },
+  });
 
-if (!user || user.role !== "client") {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <p className="text-red-600">{t("dashboard.accessDenied")}</p>
-    </div>
-  );
-}
+  if (!user || user.role !== "client") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-red-600">{t("dashboard.accessDenied")}</p>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout title={t("client.dashboard.title")}>
@@ -113,7 +112,7 @@ if (!user || user.role !== "client") {
                         className="text-2xl font-bold text-black-700"
                         data-testid="text-total-orders"
                       >
-                        {dashboardStats?.totalOrders || 12}
+                        {dashboardStats?.totalOrders}
                       </p>
                     </div>
                   </div>
@@ -137,7 +136,7 @@ if (!user || user.role !== "client") {
                         className="text-2xl font-bold text-black-700"
                         data-testid="text-wishlist-items"
                       >
-                        {dashboardStats?.wishlistItems || 24}
+                        {dashboardStats?.wishlistItems}
                       </p>
                     </div>
                   </div>
@@ -161,7 +160,7 @@ if (!user || user.role !== "client") {
                         className="text-2xl font-bold text-black-700"
                         data-testid="text-reviews-written"
                       >
-                        {dashboardStats?.reviewsWritten || 8}
+                        {dashboardStats?.reviewsWritten || 0}
                       </p>
                     </div>
                   </div>
@@ -178,7 +177,7 @@ if (!user || user.role !== "client") {
                           className="text-sm font-medium text-black-600"
                           data-testid="text-loyalty-points-label"
                         >
-                          {t("client.dashboard.Loyaltypoints")}
+                          {t("clientStats.totalSpent")}
                         </p>
                       </div>
 
@@ -186,7 +185,7 @@ if (!user || user.role !== "client") {
                         className="text-2xl font-bold text-black-700"
                         data-testid="text-total-spent"
                       >
-                        {dashboardStats?.totalSpent || "1,234"}
+                        {dashboardStats?.totalSpent}
                       </p>
                     </div>
                   </div>
@@ -365,7 +364,7 @@ if (!user || user.role !== "client") {
                 size="sm"
                 data-testid="button-view-all-notifications"
               >
-                3 {t("client.dashboard.notifications.item")}
+                {t("client.dashboard.notifications.item")}
               </Button>
             </CardHeader>
             <CardContent>

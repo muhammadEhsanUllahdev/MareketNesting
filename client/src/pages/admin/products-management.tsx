@@ -199,12 +199,13 @@ export default function AdminProductsManagement() {
           ? t("products.updateSuccess")
           : t("products.createSuccess"),
       });
-
+      handleClose();
       queryClient.invalidateQueries({
         queryKey: ["/api/admin/sellers-with-products"],
       });
-
-      handleClose();
+      if (selectedSellerId) {
+        await fetchProductsForSeller(selectedSellerId, true);
+      }
     } catch (error: any) {
       toast({
         title: t("common.error"),
@@ -230,10 +231,13 @@ export default function AdminProductsManagement() {
       if (!response.ok) throw new Error(t("products.deleteFailed"));
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({
         queryKey: ["/api/admin/sellers-with-products"],
       });
+      if (selectedSellerId) {
+        await fetchProductsForSeller(selectedSellerId, true);
+      }
       toast({
         title: t("common.success"),
         description: t("products.deleteSuccess"),
@@ -248,16 +252,6 @@ export default function AdminProductsManagement() {
     },
   });
 
-  // Toggle row expansion
-  // const toggleRow = (sellerId: string) => {
-  //   const newExpanded = new Set(expandedRows);
-  //   if (newExpanded.has(sellerId)) {
-  //     newExpanded.delete(sellerId);
-  //   } else {
-  //     newExpanded.add(sellerId);
-  //   }
-  //   setExpandedRows(newExpanded);
-  // };
   const toggleRow = (sellerId: string) => {
     setExpandedRows((prev) => {
       const updated = new Set(prev);
@@ -269,38 +263,58 @@ export default function AdminProductsManagement() {
       return updated;
     });
   };
+  // const fetchProductsForSeller = async (sellerId: string) => {
+  //   if (productsLoading[sellerId] || sellerProducts[sellerId]) {
+  //     return;
+  //   }
+
+  //   setProductsLoading((prev) => ({ ...prev, [sellerId]: true }));
+
+  //   try {
+  //     const response = await fetch(`/api/admin/sellers/${sellerId}/products`, {
+  //       credentials: "include",
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error(t("products.fetchFailed"));
+  //     }
+
+  //     const products = await response.json();
+  //     setSellerProducts((prev) => ({ ...prev, [sellerId]: products || [] }));
+  //   } catch (error) {
+  //     console.error(`${t("products.fetchError")} ${sellerId}:`, error);
+  //     setSellerProducts((prev) => ({ ...prev, [sellerId]: [] }));
+  //   } finally {
+  //     setProductsLoading((prev) => ({ ...prev, [sellerId]: false }));
+  //   }
+  // };
+  const fetchProductsForSeller = async (sellerId: string, force = false) => {
+    if (productsLoading[sellerId]) return;
+
+    // Only skip if data exists and not forcing refresh
+    if (!force && sellerProducts[sellerId]) return;
+
+    setProductsLoading((prev) => ({ ...prev, [sellerId]: true }));
+
+    try {
+      const response = await fetch(`/api/admin/sellers/${sellerId}/products`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error(t("products.fetchFailed"));
+
+      const products = await response.json();
+      setSellerProducts((prev) => ({ ...prev, [sellerId]: products || [] }));
+    } catch (error) {
+      console.error(`${t("products.fetchError")} ${sellerId}:`, error);
+      setSellerProducts((prev) => ({ ...prev, [sellerId]: [] }));
+    } finally {
+      setProductsLoading((prev) => ({ ...prev, [sellerId]: false }));
+    }
+  };
 
   // Fetch products for expanded sellers
   useEffect(() => {
-    const fetchProductsForSeller = async (sellerId: string) => {
-      if (productsLoading[sellerId] || sellerProducts[sellerId]) {
-        return;
-      }
-
-      setProductsLoading((prev) => ({ ...prev, [sellerId]: true }));
-
-      try {
-        const response = await fetch(
-          `/api/admin/sellers/${sellerId}/products`,
-          {
-            credentials: "include",
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(t("products.fetchFailed"));
-        }
-
-        const products = await response.json();
-        setSellerProducts((prev) => ({ ...prev, [sellerId]: products || [] }));
-      } catch (error) {
-        console.error(`${t("products.fetchError")} ${sellerId}:`, error);
-        setSellerProducts((prev) => ({ ...prev, [sellerId]: [] }));
-      } finally {
-        setProductsLoading((prev) => ({ ...prev, [sellerId]: false }));
-      }
-    };
-
     expandedRows.forEach((sellerId) => {
       fetchProductsForSeller(sellerId);
     });
@@ -539,42 +553,7 @@ export default function AdminProductsManagement() {
           </div>
 
           <div className="flex gap-3">
-            {/* <Button
-              onClick={() => handleOpenAdd()}
-              className="bg-blue-600 hover:bg-blue-700"
-              data-testid="button-add-product"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {t("products.addProduct")}
-            </Button> */}
-            {/* <div className="relative">
-      <input
-        type="file"
-        id="csv-upload"
-        accept=".csv,.xlsx"
-        onChange={handleCSVUpload}
-        className="hidden"
-      />
-      <Button
-        variant="outline"
-        className="border-green-600 text-green-600 hover:bg-green-50"
-        onClick={() => document.getElementById("csv-upload")?.click()}
-        disabled={csvUploading}
-        data-testid="button-upload-csv"
-      >
-        <Upload className="h-4 w-4 mr-2" />
-        {csvUploading ? t("products.uploading") : t("products.uploadCSV")}
-      </Button>
-    </div>
-    <Button
-      variant="outline"
-      className="border-blue-600 text-blue-600 hover:bg-blue-50"
-      onClick={downloadCSVTemplate}
-      data-testid="button-download-template"
-    >
-      <Upload className="h-4 w-4 mr-2" />
-      {t("products.downloadCSVTemplate")}
-    </Button> */}
+
           </div>
         </div>
 
@@ -1030,17 +1009,7 @@ export default function AdminProductsManagement() {
             />
           </DialogContent>
         </Dialog>
-        {/* <AddProductModal
-          isOpen={showAddModal}
-          onClose={() => setShowAddModal(false)}
-        />
 
-        <AddProductModal
-          isOpen={!!editProduct}
-          onClose={() => setEditProduct(null)}
-          isEdit
-          initialData={editProduct || undefined}
-        /> */}
 
         {/* View Product Modal */}
         <ViewProductModal

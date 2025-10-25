@@ -36,7 +36,7 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { AddCategoryModal } from "@/components/modals/add-category-modal";
 import { AddSupercategoryModal } from "@/components/modals/add-supercategory-modal";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
-import { categories as dummycats }  from "@/data/categories-data"; // Import sample categories
+import { categories as dummycats } from "@/data/categories-data"; // Import sample categories
 import { useEffect } from "react";
 // Category interface based on the existing schema
 interface Category {
@@ -54,12 +54,18 @@ interface Category {
 }
 
 async function seedCategories() {
-  console.log(`🚀 Starting category seeding for ${dummycats.length} categories...`);
+  console.log(
+    `🚀 Starting category seeding for ${dummycats.length} categories...`
+  );
 
   for (let i = 0; i < dummycats.length; i++) {
     const category = dummycats[i];
     try {
-      console.log(`📦 [${i + 1}/${dummycats.length}] Sending: ${category.translations[1].name}`);
+      console.log(
+        `📦 [${i + 1}/${dummycats.length}] Sending: ${
+          category.translations[1].name
+        }`
+      );
 
       const response = await fetch("/api/admin/categories", {
         method: "POST",
@@ -92,7 +98,7 @@ export default function CategoriesManagement() {
   const [showCategoryDetailModal, setShowCategoryDetailModal] = useState(false);
   const [selectedCategoryForView, setSelectedCategoryForView] =
     useState<Category | null>(null);
- const [seeded, setSeeded] = useState(false);
+  const [seeded, setSeeded] = useState(false);
   // Edit category modal states
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
   const [selectedCategoryForEdit, setSelectedCategoryForEdit] =
@@ -119,28 +125,6 @@ export default function CategoriesManagement() {
     useQuery({
       queryKey: ["/api/admin/supercategories"],
     });
-  // useEffect(() => {
-  //   // Run only once on first load
-  //   if (!seeded) {
-  //     seedCategories();
-  //     setSeeded(true);
-  //   }
-  // }, [seeded]);
-  // Filter categories with proper null/undefined checks
-  // const filteredCategories = categories.filter((category) => {
-  //   if (!category || !searchQuery) return true;
-
-  //   // Handle category name from translations or direct name property
-  //   const categoryName =
-  //     category.translations?.[0]?.name || category.name || "";
-  //   const categoryDescription =
-  //     category.translations?.[0]?.description || category.description || "";
-
-  //   return (
-  //     categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //     categoryDescription.toLowerCase().includes(searchQuery.toLowerCase())
-  //   );
-  // });
 
   const filteredCategories = categories.filter((category) => {
     if (!category) return false;
@@ -178,8 +162,8 @@ export default function CategoriesManagement() {
     },
     onSuccess: () => {
       toast({
-        title: "Deleted",
-        description: "Category deleted successfully",
+        title: t("toast.deleted"),
+        description: t("toast.categoryDeleted"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
       setShowDeleteModal(false);
@@ -187,8 +171,8 @@ export default function CategoriesManagement() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete category",
+        title: t("toast.error"),
+        description: error.message || t("toast.deleteFailed"),
         variant: "destructive",
       });
     },
@@ -205,8 +189,8 @@ export default function CategoriesManagement() {
     },
     onSuccess: () => {
       toast({
-        title: "Deleted",
-        description: "Supercategory deleted successfully",
+        title: t("toast.deleted"),
+        description: t("toast.supercategoryDeletedSuccess"),
       });
       queryClient.invalidateQueries({
         queryKey: ["/api/admin/supercategories"],
@@ -216,8 +200,8 @@ export default function CategoriesManagement() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete supercategory",
+        title: t("toast.error"),
+        description: error.message || t("toast.supercategoryDeleteFailed"),
         variant: "destructive",
       });
     },
@@ -240,15 +224,15 @@ export default function CategoriesManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
       toast({
-        title: "Success",
-        description: "Category created successfully",
+        title: t("toast.success"),
+        description: t("toast.categoryCreatedSuccess"),
       });
       setShowCategoryModal(false);
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create category",
+        title: t("toast.error"),
+        description: error.message || t("toast.categoryCreateFailed"),
         variant: "destructive",
       });
     },
@@ -272,15 +256,15 @@ export default function CategoriesManagement() {
         queryKey: ["/api/admin/supercategories"],
       });
       toast({
-        title: "Success",
-        description: "Supercategory created successfully",
+        title: t("toast.success"),
+        description: t("toast.supercategoryCreatedSuccess"),
       });
       setShowSupercategoryModal(false);
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create supercategory",
+        title: t("toast.error"),
+        description: error.message || t("toast.supercategoryCreateFailed"),
         variant: "destructive",
       });
     },
@@ -297,16 +281,16 @@ export default function CategoriesManagement() {
         queryKey: ["/api/admin/supercategories"],
       });
       toast({
-        title: "Success",
-        description: "Supercategory updated successfully",
+        title: t("toast.success"),
+        description: t("toast.supercategoryUpdatedSuccess"),
       });
       setShowEditSupercategoryModal(false);
       setSelectedSupercategoryForEdit(null);
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update supercategory",
+        title: t("toast.error"),
+        description: error.message || t("toast.supercategoryUpdateFailed"),
         variant: "destructive",
       });
     },
@@ -421,42 +405,27 @@ export default function CategoriesManagement() {
         {/* Category Cards Grid */}
         {isLoading ? (
           <div className="text-center py-12" data-testid="loading-state">
-            <div className="text-lg text-gray-600">Loading categories...</div>
+            <div className="text-lg text-gray-600">{t("category.loading")}</div>
           </div>
         ) : filteredCategories.length === 0 ? (
           <div className="text-center py-12" data-testid="empty-state">
             <div className="text-lg text-gray-600 mb-2">
-               <Layers className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <Layers className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               {t("categories.notfound")}
             </div>
-            {/* <div className="text-sm text-gray-500">
-              {categories.length === 0
-                ? "Get started by creating your first category"
-                : "No categories match your search criteria"}
-            </div> */}
             <div className="text-sm text-gray-500">
               {categories.length === 0
                 ? t("categories.createdesc")
                 : t("categories.noMatch")}
             </div>
-            {/* {categories.length === 0 && (
-              <Button
-                className="mt-4 bg-blue-600 hover:bg-blue-700"
-                onClick={() => setShowCategoryModal(true)}
-                data-testid="button-create-first-category"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {t("categories.createfirstcate")}
-              </Button>
-            )} */}
           </div>
         ) : selectedFilter === "Featured" && filteredCategories.length === 0 ? (
           <div className="text-center py-12" data-testid="empty-featured-state">
             <div className="text-lg text-gray-600 mb-2">
-              No featured categories available
+              {t("featured.emptyTitle")}
             </div>
             <div className="text-sm text-gray-500">
-              Mark some categories as featured to see them here.
+              {t("featured.emptyDescription")}
             </div>
           </div>
         ) : (
@@ -513,9 +482,6 @@ export default function CategoriesManagement() {
                     )}
                     <div className="text-xs text-gray-500 space-y-1">
                       <div>
-                        {/* {t("categories.products", {
-                          count: category.productCount || 0,
-                        })} */}
                         {category.productCount > 0 && (
                           <span>
                             {category.productCount} {t("categories.products")}
@@ -523,9 +489,6 @@ export default function CategoriesManagement() {
                         )}
                       </div>
                       <div>
-                        {/* {t("categories.subcategories", {
-                          count: category.subcategoryCount || 0,
-                        })} */}
                         {category.subcategoryCount > 0 && (
                           <span>
                             {category.subcategoryCount}{" "}
@@ -628,14 +591,6 @@ export default function CategoriesManagement() {
                       <div className="text-sm text-gray-500">
                         {t("categories.createFirst")}
                       </div>
-                      {/* <Button
-                        className="mt-4 bg-purple-600 hover:bg-purple-700"
-                        onClick={() => setShowSupercategoryModal(true)}
-                        data-testid="button-create-first-supercategory"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        {t("categories.createBtn")}
-                      </Button> */}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -895,22 +850,15 @@ function CategoryDetailModal({
                 {categoryName}
               </h2>
               <div className="text-sm text-gray-500">
-                Type: {category.type || "Standard"}
+                {t("category.type")}: {category.type || t("category.standard")}
               </div>
+
               {category.isFeatured && (
                 <div className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">
                   {t("categories.featured")}
                 </div>
               )}
             </div>
-            {/* <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button> */}
           </div>
         </DialogHeader>
 

@@ -193,53 +193,53 @@ const ShippingManagement = () => {
   };
 
   /* Settings: per-carrier config save */
-  const handleSaveSettings = async () => {
-    // For each carrier present in optionsByCarrier, either POST or PUT shipping option
-    try {
-      for (const carrierId of Object.keys(optionsByCarrier)) {
-        const opt = optionsByCarrier[carrierId];
-        // Normalize numeric fields
-        const payload: any = {
-          region: opt.region ?? "default",
-          basePrice: opt.basePrice ? Number(opt.basePrice) : 0,
-          pricePerKg: opt.pricePerKg ? Number(opt.pricePerKg) : 0,
-          maxWeight: opt.maxWeight ? Number(opt.maxWeight) : null,
-          length: opt.length ? Number(opt.length) : null,
-          width: opt.width ? Number(opt.width) : null,
-          height: opt.height ? Number(opt.height) : null,
-          deliveryTime: opt.deliveryTime ?? "",
-          isActive: opt.isActive ?? true,
-        };
+  // const handleSaveSettings = async () => {
+  //   // For each carrier present in optionsByCarrier, either POST or PUT shipping option
+  //   try {
+  //     for (const carrierId of Object.keys(optionsByCarrier)) {
+  //       const opt = optionsByCarrier[carrierId];
+  //       // Normalize numeric fields
+  //       const payload: any = {
+  //         region: opt.region ?? "default",
+  //         basePrice: opt.basePrice ? Number(opt.basePrice) : 0,
+  //         pricePerKg: opt.pricePerKg ? Number(opt.pricePerKg) : 0,
+  //         maxWeight: opt.maxWeight ? Number(opt.maxWeight) : null,
+  //         length: opt.length ? Number(opt.length) : null,
+  //         width: opt.width ? Number(opt.width) : null,
+  //         height: opt.height ? Number(opt.height) : null,
+  //         deliveryTime: opt.deliveryTime ?? "",
+  //         isActive: opt.isActive ?? true,
+  //       };
 
-        if (opt.id) {
-          // Update existing
-          await fetch(`/api/shipping-options/${opt.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }).then((r) => {
-            if (!r.ok) throw new Error(t("shipping.failedUpdateOption"));
-            return r.json();
-          });
-        } else {
-          // Create new
-          await fetch(`/api/carriers/${carrierId}/options`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }).then((r) => {
-            if (!r.ok) throw new Error(t("shipping.failedCreateOption"));
-            return r.json();
-          });
-        }
-      }
+  //       if (opt.id) {
+  //         // Update existing
+  //         await fetch(`/api/shipping-options/${opt.id}`, {
+  //           method: "PUT",
+  //           headers: { "Content-Type": "application/json" },
+  //           body: JSON.stringify(payload),
+  //         }).then((r) => {
+  //           if (!r.ok) throw new Error(t("shipping.failedUpdateOption"));
+  //           return r.json();
+  //         });
+  //       } else {
+  //         // Create new
+  //         await fetch(`/api/carriers/${carrierId}/options`, {
+  //           method: "POST",
+  //           headers: { "Content-Type": "application/json" },
+  //           body: JSON.stringify(payload),
+  //         }).then((r) => {
+  //           if (!r.ok) throw new Error(t("shipping.failedCreateOption"));
+  //           return r.json();
+  //         });
+  //       }
+  //     }
 
-      // Optionally, show toast if you have one. For now console:
-      console.log("Paramètres des transporteurs sauvegardés");
-    } catch (err) {
-      console.error("Erreur sauvegarde paramètres transporteurs", err);
-    }
-  };
+  //     // Optionally, show toast if you have one. For now console:
+  //     console.log("Paramètres des transporteurs sauvegardés");
+  //   } catch (err) {
+  //     console.error("Erreur sauvegarde paramètres transporteurs", err);
+  //   }
+  // };
 
   /* UI helpers */
   const filteredCarriers =

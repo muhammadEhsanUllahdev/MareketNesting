@@ -45,11 +45,24 @@ export default function OrdersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  type Order = {
+    id: string;
+    orderNumber: string;
+    vendorName: string;
+    status: string;
+    createdAt: string;
+    items: { vendorName?: string }[];
+    totalAmount: number;
+    itemCount: number;
+    paymentMethod: string;
+    trackingNumber?: string | null;
+  };
+
   const {
     data: orders = [],
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     enabled: !!user,
   });
@@ -85,9 +98,9 @@ export default function OrdersPage() {
     });
 
   const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.vendorName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = order.orderNumber
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     const matchesStatus =
       selectedStatus === "all" || order.status === selectedStatus;
     return matchesSearch && matchesStatus;
@@ -101,8 +114,8 @@ export default function OrdersPage() {
       });
 
       if (!res.ok) {
-  throw new Error(t("error.failedToCancelOrder"));
-}
+        throw new Error(t("error.failedToCancelOrder"));
+      }
       return res.json();
     },
     onSuccess: (data, orderId) => {

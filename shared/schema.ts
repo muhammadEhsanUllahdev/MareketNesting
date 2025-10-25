@@ -118,6 +118,41 @@ export const stockAlerts = pgTable("stock_alerts", {
   resolvedAt: timestamp("resolved_at"),
 });
 
+export const withdrawalRequests = pgTable("withdrawal_requests", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  sellerId: varchar("seller_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  amount: integer("amount").default(0),
+  bankAccountInfo: jsonb("bank_account_info").notNull(),
+  status: text("status").default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+  adminNotes: text("admin_notes"),
+});
+
+// shared/schema.ts
+
+export const blacklistedProducts = pgTable("blacklisted_products", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  productId: varchar("product_id")
+    .references(() => products.id, { onDelete: "cascade" })
+    .notNull(),
+  categoryId: varchar("category_id")
+    .references(() => categories.id)
+    .notNull(),
+  reason: text("reason").notNull(),
+  status: text("status").default("permanent").notNull(), // permanent | temporary
+  addedBy: varchar("added_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Shipping Schemas
 
 // export const shippingZones = pgTable("shipping_zones", {
@@ -163,6 +198,27 @@ export const carriers = pgTable("carriers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const shipments = pgTable("shipments", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone"),
+  origin: text("origin").notNull(),
+  destination: text("destination").notNull(),
+  carrierId: varchar("carrier_id").references(() => carriers.id),
+  status: text("status").notNull(),
+  trackingNumber: text("tracking_number").notNull(),
+  estimatedDelivery: timestamp("estimated_delivery"),
+  actualDelivery: timestamp("actual_delivery"),
+  weight: text("weight"),
+  value: text("value"),
+  shippingCost: text("shipping_cost"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 export const shippingOptions = pgTable("shipping_options", {
   id: varchar("id")
     .primaryKey()

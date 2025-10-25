@@ -117,8 +117,6 @@ export default function WishlistPage() {
     },
   });
 
-
-
   const addToCartMutation = useMutation({
     mutationFn: ({
       productId,
@@ -130,6 +128,7 @@ export default function WishlistPage() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cart/count"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/client"] });
       toast({
         title: t("products.addedToCart"),
         description: t("wishlist.productAdded", {
@@ -227,7 +226,6 @@ export default function WishlistPage() {
       </div>
     );
   }
-
 
   return (
     <DashboardLayout title={t("wishlist.title")}>

@@ -147,7 +147,7 @@ export const ShopDeliveryForm = ({ open, onOpenChange, onSubmit, editingMethod }
                 value={formData.deliveryAreas}
                 onChange={(e) => setFormData({...formData, deliveryAreas: e.target.value})}
                 className="col-span-3"
-                placeholder="Alger, Oran, Constantine"
+                placeholder={t("zone.placeholder.exampleCities")}
               />
             </div>
             

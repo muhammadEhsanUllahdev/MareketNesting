@@ -24,6 +24,11 @@ import ProductQA from "./ProductQA";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Product } from "./interface/product";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { add } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 // interface Product {
 //   id: number;
 //   name: string;
@@ -48,8 +53,39 @@ interface ProductDetailsProps {
 const ProductDetails = ({ product, open, onClose }: ProductDetailsProps) => {
   // const { t } = useLanguage();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const addToCartMutation = useMutation({
+    mutationFn: () => {
+      if (!product) throw new Error("No product selected");
+      return apiRequest(
+        "POST", // method
+        `/api/cart/${product.id}`,
+        { quantity: quantity }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cart/count"] });
+      toast({
+        title: t("products.addedToCart"),
+        description: product?.name ?? "",
+        duration: 3000,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add to cart",
+        variant: "destructive",
+        duration: 3000,
+      });
+    },
+  });
+
   useEffect(() => {
     if (product) {
       setSelectedImage(
@@ -243,19 +279,45 @@ const ProductDetails = ({ product, open, onClose }: ProductDetailsProps) => {
 
                   {/* Availability */}
                   <div className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600 font-medium">
-                      {t("products.inStock")}
-                    </span>
+                    {product.stock === 0 ? (
+                      <Badge
+                        variant="destructive"
+                        className="text-xs bg-red-100 text-red-600 border border-red-300"
+                      >
+                        {t("products.outOfStock", "Out of Stock")}
+                      </Badge>
+                    ) : (
+                      <div>
+                        <Check className="h-4 w-4 text-green-600" />
+                        <span className="text-green-600 font-medium">
+                          {t("products.inStock")}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                  <Button className="w-full bg-gradient-to-r from-cebleu-gold to-cebleu-gold-light text-cebleu-dark hover:from-cebleu-gold-light hover:to-cebleu-gold font-medium h-12 shadow-md">
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    {t("products.addToCart")}
-                  </Button>
+                  {product.stock > 0 ? (
+                    <Button
+                      onClick={() => addToCartMutation.mutate()}
+                      disabled={addToCartMutation.isPending}
+                      className="w-full bg-gradient-to-r from-gold to-cebleu-gold-light text-cebleu-dark hover:from-cebleu-gold-light hover:to-cebleu-gold font-medium h-12 shadow-md"
+                    >
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      {addToCartMutation.isPending
+                        ? t("products.addingToCart")
+                        : t("products.addToCart")}
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full h-9 text-xs sm:text-sm bg-gray-300 text-gray-600 font-medium rounded-md flex items-center justify-center cursor-not-allowed"
+                      disabled
+                    >
+                      {t("products.unavailable", "Unavailable")}
+                    </Button>
+                  )}
 
                   <Button
                     variant="outline"

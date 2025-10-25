@@ -16,7 +16,10 @@ import { Router } from "express";
 // import { pool } from "./db";
 declare global {
   namespace Express {
-    interface User extends SelectUser {}
+    interface User extends SelectUser { }
+    interface Request {
+      userLanguage?: string;
+    }
   }
 }
 
@@ -35,38 +38,102 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 const router = Router();
+
+router.post("/login", (req, res, next) => {
+  passport.authenticate("local", async (err: any, user: any, info: any) => {
+    if (err) return next(err);
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    // Your custom checks
+    if (!user.emailVerified) {
+      return res.status(403).json({ success: false, message: "Verify your email" });
+    }
+    if ((user.status && user.status !== "Active") || (!user.status && !user.isActive)) {
+      return res.status(403).json({ success: false, message: "Account inactive/blocked" });
+    }
+    if (user.role === "seller" && user.sellerStatus !== "approved") {
+      const msg = user.sellerStatus === "rejected"
+        ? "Seller application rejected"
+        : "Seller account pending approval";
+      return res.status(403).json({ success: false, message: msg, needsApproval: true });
+    }
+
+    // if user.role === "seller" then fetch and attach the store info
+    if (user.role === "seller") {
+      try {
+        const storeInfo = await storage.getStoreInfoByUserId(user.id);
+        if (!storeInfo) {
+          return res.status(404).json({ success: false, message: "Store not found" });
+        }
+        user.store = storeInfo;
+      } catch (fetchErr) {
+        console.error("Failed to fetch store info for login:", fetchErr);
+        return res.status(500).json({ success: false, message: "Failed to fetch store info" });
+      }
+    }
+    req.login(user, (loginErr) => {
+      if (loginErr) return next(loginErr);
+
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error("❌ Session save failed:", saveErr);
+          return res.status(500).json({ success: false, message: "Session not saved" });
+        }
+
+        const { password, resetToken, resetTokenExpiry, emailVerificationToken, ...safeUser } = user;
+        console.log("✅ User logged in & session saved:", user.username);
+        return res.json({ user: safeUser });
+      });
+    });
+
+
+    // Use passport's req.login (this persists the session)
+    // req.login(user, (loginErr) => {
+    //   if (loginErr) return next(loginErr);
+
+    //   // Return sanitized user object (NEVER send password or sensitive fields)
+    //   console.log("✅ User logged in:", user);
+    //   const { password, resetToken, resetTokenExpiry, emailVerificationToken, ...safeUser } = user;
+    //   return res.json(safeUser);
+
+    // });
+  })(req, res, next);
+});
+
+router.get("/debug-session", (req, res) => {
+  res.json({
+    session: req.session,
+    user: req.user,
+    authenticated: req.isAuthenticated(),
+  });
+});
+
+
+router.post("/logout", (req, res) => {
+  try {
+    if (!req.session) return res.json({ success: true });
+
+    const sid = req.session.id;
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Session destroy error:", err);
+        return res.status(500).json({ success: false, message: "Logout failed" });
+      }
+      // Cookie name is connect.sid by default; path must match session cookie
+      res.clearCookie("connect.sid", { path: "/" });
+      console.log("Session destroyed:", sid);
+      return res.json({ success: true });
+    });
+  } catch (e) {
+    console.error("Logout fatal error:", e);
+    res.status(500).json({ success: false });
+  }
+});
 export function setupAuth(app: Express) {
-  // const sessionSettings: session.SessionOptions = {
-  //   secret: process.env.SESSION_SECRET!,
-  //   resave: false,
-  //   saveUninitialized: false,
-  //   store: storage.sessionStore,
-  // };
-  // inside setupAuth(app) — replace sessionSettings block
-
-const isProd = process.env.NODE_ENV === "production";
-const sessionSettings: session.SessionOptions = {
-  secret: process.env.SESSION_SECRET || "dev-session-secret",
-  resave: false,
-  saveUninitialized: false,
-  store: storage.sessionStore, // your memory store or pg store
-  cookie: {
-    httpOnly: true,
-    secure: isProd,                 // must be true in production (HTTPS)
-    sameSite: isProd ? "none" : "lax", // if client & server on different origins, production needs 'none'
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-  },
-};
-
-app.set("trust proxy", isProd ? 1 : 0); // when behind a proxy/load balancer in production
-app.use(session(sessionSettings));
-
-  // const PgSession = connectPgSimple(session);
-  app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
-  app.use(passport.initialize());
-  app.use(passport.session());
-  
+  // Session and passport are now configured in server/index.ts
+  // This function just sets up the passport strategy
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -81,19 +148,35 @@ app.use(session(sessionSettings));
 
   passport.serializeUser((user, done) => done(null, user.id));
 
-passport.deserializeUser(async (id: string, done) => {
-  try {
-    const user = await storage.getUser(id);
+  // passport.deserializeUser(async (id: string, done) => {
+  //   try {
+  //     const user = await storage.getUser(id);
+
+  //     if (!user) {
+  //       return done(null, false); // no user found, force re-login
+  //     }
+
+  //     return done(null, user);
+  //   } catch (err) {
+  //     console.error("❌ Failed to deserialize user:", err);
+
+  //     // Instead of crashing, treat as unauthenticated
+  //     return done(null, false);
+  //   }
+  // });
+  passport.deserializeUser(async (id: string, done) => {
+    try {
+      const user = await storage.getUser(id);
 
       if (!user) {
-        return done(null, false); // no user found, force re-login
+        console.warn(`⚠️ No user found for session ID: ${id}`);
+        return done(null, false);
       }
 
       return done(null, user);
     } catch (err) {
       console.error("❌ Failed to deserialize user:", err);
-
-      // Instead of crashing, treat as unauthenticated
+      // Do NOT drop session entirely if DB is temporarily slow
       return done(null, false);
     }
   });
@@ -127,7 +210,6 @@ passport.deserializeUser(async (id: string, done) => {
       }
     },
   });
-
   // app.post("/api/register", upload.single("avatar"), async (req, res, next) => {
   //   try {
   //     // Prevent admin registration
@@ -417,7 +499,7 @@ passport.deserializeUser(async (id: string, done) => {
   //         sellerStatus: user.sellerStatus,
   //       });
   //     }
-      
+
   //     req.login(user, (err) => {
   //       if (err) return next(err);
 
@@ -447,62 +529,7 @@ passport.deserializeUser(async (id: string, done) => {
   //   });
   // });
 
-  router.post("/login", (req, res, next) => {
-  passport.authenticate("local", (err: any, user: any, info: any) => {
-    if (err) return next(err);
-    if (!user) {
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
-    }
 
-    // Your custom checks
-    if (!user.emailVerified) {
-      return res.status(403).json({ success: false, message: "Verify your email" });
-    }
-    if ((user.status && user.status !== "Active") || (!user.status && !user.isActive)) {
-      return res.status(403).json({ success: false, message: "Account inactive/blocked" });
-    }
-    if (user.role === "seller" && user.sellerStatus !== "approved") {
-      const msg = user.sellerStatus === "rejected"
-        ? "Seller application rejected"
-        : "Seller account pending approval";
-      return res.status(403).json({ success: false, message: msg, needsApproval: true });
-    }
-
-    // Put minimal info in session (passport will serialize too)
-    req.session.user = { id: user.id, email: user.email, role: user.role };
-
-    // Use passport's req.login (this persists the session)
-    req.login(user, (loginErr) => {
-      if (loginErr) return next(loginErr);
-
-      return res.json({
-        success: true,
-        user: { id: user.id, email: user.email, role: user.role },
-      });
-    });
-  })(req, res, next);
-});
-
-router.post("/logout", (req, res) => {
-  try {
-    if (!req.session) return res.json({ success: true });
-
-    const sid = req.session.id;
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Session destroy error:", err);
-        return res.status(500).json({ success: false, message: "Logout failed" });
-      }
-      // Cookie name is connect.sid by default; path must match session cookie
-      res.clearCookie("connect.sid", { path: "/" });
-      console.log("Session destroyed:", sid);
-      return res.json({ success: true });
-    });
-  } catch (e) {
-    console.error("Logout fatal error:", e);
-    res.status(500).json({ success: false });
-  }
-});
 
   // app.post("/logout", (req, res, next) => {
   //   req.logout(function (err) {
@@ -515,7 +542,14 @@ router.post("/logout", (req, res) => {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    res.json(req.user);
+
+    // Sanitize user object before sending (NEVER send password or sensitive fields)
+    const user = req.user;
+    if (user) {
+      const { password, resetToken, resetTokenExpiry, emailVerificationToken, ...safeUser } = user;
+      return res.json(safeUser);
+    }
+    return res.sendStatus(401);
   });
 
   // Forgot password route
@@ -706,8 +740,7 @@ router.post("/logout", (req, res) => {
             approved
           );
           console.log(
-            `Seller ${approved ? "approval" : "rejection"} email sent to ${
-              user.email
+            `Seller ${approved ? "approval" : "rejection"} email sent to ${user.email
             }`
           );
         } catch (emailError) {

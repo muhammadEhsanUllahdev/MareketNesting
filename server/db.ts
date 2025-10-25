@@ -136,9 +136,9 @@ if (!g.__pgPool) {
     ssl: process.env.DATABASE_URL.includes("neon.tech")
       ? { rejectUnauthorized: false }
       : undefined,
-    max: 10,                 // keep conservative
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    max: 8,                 // keep conservative
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 15000,
   });
 }
 

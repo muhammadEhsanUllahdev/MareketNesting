@@ -37,8 +37,11 @@ import {
   shippingZones,
   shippingZoneCarriers,
   addresses,
+  withdrawalRequests,
+  shipments,
 } from "@shared/schema";
 import { db } from "./db";
+import type * as session from "express-session";
 import {
   eq,
   and,
@@ -52,11 +55,11 @@ import {
   count,
   sum,
   avg,
+  or,
+  ilike,
+  asc,
+  gt,
 } from "drizzle-orm";
-import session from "express-session";
-import createMemoryStore from "memorystore";
-
-const MemoryStore = createMemoryStore(session);
 
 import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 
@@ -112,7 +115,10 @@ export interface IStorage {
     limit?: number;
     offset?: number;
   }): Promise<any[]>;
-  getAllProductsWithTranslations(): Promise<any[]>;
+  getAllProductsWithTranslations(
+    limit?: number,
+    offset?: number
+  ): Promise<{ items: any[]; total: number }>;
   getProductWithTranslations(productId: string, language: string): Promise<any>;
   createProduct(productData: any): Promise<any>;
   getProductForEdit(productId: string, vendorId: string): Promise<any>;
@@ -187,13 +193,7 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  public sessionStore: session.Store;
-
-  constructor() {
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
-    });
-  }
+  public sessionStore: any;
 
   private checkDatabase(): boolean {
     if (!db) {
@@ -587,12 +587,264 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+
+  async getPopularProductsWithGrowth(opts?: {
+    sellerId?: string;
+    lang?: string;
+    limit?: number;
+  }): Promise<any[]> {
+    return this.executeWithFallback(async () => {
+      const sellerId = opts?.sellerId ?? undefined;
+      const lang = (opts?.lang || "en").split("-")[0].toLowerCase();
+      const limit = opts?.limit ? Number(opts.limit) : 5;
+
+      // build where condition
+      const baseWhere = and(
+        eq(orders.status, "delivered"),
+        eq(products.isActive, true),
+        isNull(products.deletedAt)
+      );
+      const whereCond = sellerId ? and(baseWhere, eq(products.vendorId, sellerId)) : baseWhere;
+
+      // main aggregation: total sold & revenue per product (localized name if available)
+
+      const rows = await db
+        .select({
+          productId: products.id,
+          vendorId: products.vendorId,
+          sku: products.sku,
+          images: products.images,
+          price: products.price,
+          // use translation.name only (products has no name column)
+          localizedName: sql<string>`COALESCE(${productTranslations.name}, '')`,
+          totalSold: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)`,
+          totalRevenue: sql<number>`COALESCE(SUM(CAST(${orderItems.totalPrice} AS numeric)), 0)`,
+          rating: products.rating,
+        })
+        .from(orderItems)
+        .innerJoin(products, eq(orderItems.productId, products.id))
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .leftJoin(
+          productTranslations,
+          and(eq(productTranslations.productId, products.id), eq(productTranslations.language, lang))
+        )
+        .where(whereCond)
+        .groupBy(
+          products.id,
+          products.vendorId,
+          products.sku,
+          products.images,
+          products.price,
+          productTranslations.name,
+          products.rating
+        )
+        .orderBy(desc(sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)`), desc(products.rating))
+        .limit(limit);
+      const productIds = (rows || []).map((r: any) => r.productId).filter(Boolean);
+      if (productIds.length === 0) return [];
+
+      // previous month stats (sold, revenue) using module-level previousMonthStart/End
+      const prevMonthStats = await db
+        .select({
+          productId: orderItems.productId,
+          soldPrev: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)`,
+          revenuePrev: sql<number>`COALESCE(SUM(CAST(${orderItems.totalPrice} AS numeric)), 0)`,
+        })
+        .from(orderItems)
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(
+          and(
+            inArray(orderItems.productId, productIds),
+            gte(orders.createdAt, previousMonthStart),
+            lte(orders.createdAt, previousMonthEnd),
+            eq(orders.status, "delivered")
+          )
+        )
+        .groupBy(orderItems.productId);
+
+      const prevMap: Record<string, { soldPrev: number; revenuePrev: number }> = {};
+      prevMonthStats.forEach((p: any) => {
+        prevMap[p.productId] = { soldPrev: Number(p.soldPrev || 0), revenuePrev: Number(p.revenuePrev || 0) };
+      });
+
+      // fetch all translations for these products
+      const allTranslations = await db
+        .select({
+          productId: productTranslations.productId,
+          language: productTranslations.language,
+          name: productTranslations.name,
+          description: productTranslations.description,
+          highlights: productTranslations.highlights,
+          shortDescription: productTranslations.shortDescription,
+        })
+        .from(productTranslations)
+        .where(inArray(productTranslations.productId, productIds));
+
+      const translationsMap: Record<string, Record<string, any>> = {};
+      allTranslations.forEach((t: any) => {
+        translationsMap[t.productId] = translationsMap[t.productId] || {};
+        translationsMap[t.productId][t.language] = {
+          name: t.name,
+          description: t.description,
+          highlights: t.highlights,
+          shortDescription: t.shortDescription,
+        };
+      });
+
+      // map rows to final result with growth calculations
+      const result = (rows || []).map((r: any) => {
+        const translations = translationsMap[r.productId] || {};
+        const prev = prevMap[r.productId] || { soldPrev: 0, revenuePrev: 0 };
+
+        const growthSold =
+          prev.soldPrev > 0
+            ? ((Number(r.totalSold) - Number(prev.soldPrev)) / prev.soldPrev) * 100
+            : prev.soldPrev === 0 && Number(r.totalSold) === 0
+              ? 0
+              : 100;
+
+        const growthRevenue =
+          prev.revenuePrev > 0
+            ? ((Number(r.totalRevenue) - Number(prev.revenuePrev)) / prev.revenuePrev) * 100
+            : prev.revenuePrev === 0 && Number(r.totalRevenue) === 0
+              ? 0
+              : 100;
+
+        const displayName =
+          (r.localizedName && String(r.localizedName).trim()) ||
+          translations[lang]?.name ||
+          Object.values(translations)[0]?.name ||
+          r.sku ||
+          "";
+
+        return {
+          id: r.productId,
+          vendorId: r.vendorId,
+          sku: r.sku,
+          images: r.images || [],
+          price: r.price,
+          name: displayName,
+          translations,
+          totalSold: Number(r.totalSold || 0),
+          totalRevenue: Number(r.totalRevenue || 0),
+          rating: Number(r.rating || 0),
+          soldGrowth: Number(growthSold.toFixed(1)),
+          revenueGrowth: Number(growthRevenue.toFixed(1)),
+        };
+      });
+
+      return result;
+    }, [] as any[]);
+  }
+
   // New method to get ALL products with ALL translations for frontend filtering
-  async getAllProductsWithTranslations(): Promise<any[]> {
+  // async getAllProductsWithTranslations(): Promise<any[]> {
+  //   try {
+  //     if (!db) throw new Error("Database not available");
+
+  //     // Get all products from active stores only
+  //     const productsResult = await db
+  //       .select({
+  //         id: products.id,
+  //         vendorId: products.vendorId,
+  //         categoryId: products.categoryId,
+  //         categoryName: categoryTranslations.name,
+  //         slug: products.slug,
+  //         sku: products.sku,
+  //         price: products.price,
+  //         originalPrice: products.originalPrice,
+  //         stock: products.stock,
+  //         images: products.images,
+  //         isFeatured: products.isFeatured,
+  //         rating: products.rating,
+  //         reviewCount: products.reviewCount,
+  //         isActive: products.isActive,
+  //         status: products.status,
+  //         brand: products.brand,
+  //         createdAt: products.createdAt,
+  //         vendorName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+  //       })
+  //       .from(products)
+  //       .leftJoin(users, eq(users.id, products.vendorId))
+  //       .leftJoin(stores, eq(stores.ownerId, products.vendorId))
+  //       .leftJoin(categories, eq(categories.id, products.categoryId))
+  //       .leftJoin(
+  //         categoryTranslations,
+  //         and(
+  //           eq(categoryTranslations.categoryId, categories.id),
+  //           eq(categoryTranslations.language, "en")
+  //         )
+  //       )
+  //       .where(
+  //         and(
+  //           eq(products.isActive, true),
+  //           // eq(stores.status, "active"),
+  //           isNull(products.deletedAt)
+  //           // isNull(stores.deletedAt),
+  //         )
+  //       )
+  //       .orderBy(desc(products.createdAt));
+
+  //     // Get ALL translations for these products
+  //     const productIds = productsResult.map((p) => p.id);
+
+  //     if (productIds.length === 0) {
+  //       return [];
+  //     }
+
+  //     const translationsResult = await db
+  //       .select({
+  //         productId: productTranslations.productId,
+  //         language: productTranslations.language,
+  //         name: productTranslations.name,
+  //         description: productTranslations.description,
+  //         highlights: productTranslations.highlights,
+  //       })
+  //       .from(productTranslations)
+  //       .where(inArray(productTranslations.productId, productIds));
+
+  //     // Group translations by product ID and language
+  //     const translationsByProduct: {
+  //       [productId: string]: { [language: string]: any };
+  //     } = {};
+
+  //     translationsResult.forEach((translation) => {
+  //       if (!translationsByProduct[translation.productId]) {
+  //         translationsByProduct[translation.productId] = {};
+  //       }
+  //       translationsByProduct[translation.productId][translation.language] = {
+  //         name: translation.name,
+  //         description: translation.description,
+  //         highlights: translation.highlights,
+  //       };
+  //     });
+
+  //     // Combine products with their translations
+  //     const result = productsResult.map((product) => ({
+  //       ...product,
+  //       name: translationsByProduct[product.id]?.en?.name || "Untitled Product",
+  //       translations: translationsByProduct[product.id] || {},
+  //     }));
+
+  //     return result;
+  //   } catch (error) {
+  //     console.error("Error fetching all products:", error);
+  //     return [];
+  //   }
+  // }
+
+  async getFeaturedProductsWithTranslations(): Promise<{
+    items: any[];
+    total: number;
+  }> {
     try {
       if (!db) throw new Error("Database not available");
 
-      // Get all products from active stores only
+      const [{ total }] = await db
+        .select({ total: sql<number>`COUNT(*) AS INTEGER` })
+        .from(products)
+        .where(and(eq(products.isActive, true), isNull(products.deletedAt)));
+
       const productsResult = await db
         .select({
           id: products.id,
@@ -625,21 +877,12 @@ export class DatabaseStorage implements IStorage {
             eq(categoryTranslations.language, "en")
           )
         )
-        .where(
-          and(
-            eq(products.isActive, true),
-            // eq(stores.status, "active"),
-            isNull(products.deletedAt)
-            // isNull(stores.deletedAt),
-          )
-        )
+        .where(and(eq(products.isActive, true), isNull(products.deletedAt)))
         .orderBy(desc(products.createdAt));
 
-      // Get ALL translations for these products
       const productIds = productsResult.map((p) => p.id);
-
       if (productIds.length === 0) {
-        return [];
+        return { items: [], total };
       }
 
       const translationsResult = await db
@@ -653,33 +896,368 @@ export class DatabaseStorage implements IStorage {
         .from(productTranslations)
         .where(inArray(productTranslations.productId, productIds));
 
-      // Group translations by product ID and language
-      const translationsByProduct: {
-        [productId: string]: { [language: string]: any };
-      } = {};
+      const translationsByProduct: Record<string, Record<string, any>> = {};
 
-      translationsResult.forEach((translation) => {
-        if (!translationsByProduct[translation.productId]) {
-          translationsByProduct[translation.productId] = {};
+      translationsResult.forEach((t) => {
+        if (!translationsByProduct[t.productId]) {
+          translationsByProduct[t.productId] = {};
         }
-        translationsByProduct[translation.productId][translation.language] = {
-          name: translation.name,
-          description: translation.description,
-          highlights: translation.highlights,
+        translationsByProduct[t.productId][t.language] = {
+          name: t.name,
+          description: t.description,
+          highlights: t.highlights,
         };
       });
 
-      // Combine products with their translations
-      const result = productsResult.map((product) => ({
+      const items = productsResult.map((product) => ({
         ...product,
         name: translationsByProduct[product.id]?.en?.name || "Untitled Product",
         translations: translationsByProduct[product.id] || {},
       }));
 
-      return result;
+      return { items, total };
     } catch (error) {
-      console.error("Error fetching all products:", error);
-      return [];
+      console.error("❌ Error fetching all products with translations:", error);
+      return { items: [], total: 0 };
+    }
+  }
+
+  //   async getAllProductsWithTranslations(
+  //   limit: number = 15,
+  //   offset: number = 0,
+  //   category?: string
+  // ): Promise<{ items: any[]; total: number }> {
+  //   try {
+  //     if (!db) throw new Error("Database not available");
+
+  //     const whereConditions = [
+  //       eq(products.isActive, true),
+  //       isNull(products.deletedAt)
+  //     ];
+
+  //     if (category) {
+  //       whereConditions.push(eq(categoryTranslations.name, category));
+  //     }
+
+  //     // --- 1️⃣ Count total active products (for pagination info)
+  //     const [{ total }] = await db
+  //       .select({ total: sql<number>`COUNT(*) AS INTEGER` })
+  //       .from(products)
+  //       .leftJoin(categories, eq(categories.id, products.categoryId))
+  //       .leftJoin(
+  //         categoryTranslations,
+  //         and(
+  //           eq(categoryTranslations.categoryId, categories.id),
+  //           eq(categoryTranslations.language, "en")
+  //         )
+  //       )
+  //       .where(and(...whereConditions));      // --- 2️⃣ Get paginated products
+  //     const productsResult = await db
+  //       .select({
+  //         id: products.id,
+  //         vendorId: products.vendorId,
+  //         categoryId: products.categoryId,
+  //         categoryName: categoryTranslations.name,
+  //         slug: products.slug,
+  //         sku: products.sku,
+  //         price: products.price,
+  //         originalPrice: products.originalPrice,
+  //         stock: products.stock,
+  //         images: products.images,
+  //         isFeatured: products.isFeatured,
+  //         rating: products.rating,
+  //         reviewCount: products.reviewCount,
+  //         isActive: products.isActive,
+  //         status: products.status,
+  //         brand: products.brand,
+  //         createdAt: products.createdAt,
+  //         vendorName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+  //       })
+  //       .from(products)
+  //       .leftJoin(users, eq(users.id, products.vendorId))
+  //       .leftJoin(stores, eq(stores.ownerId, products.vendorId))
+  //       .leftJoin(categories, eq(categories.id, products.categoryId))
+  //       .leftJoin(
+  //         categoryTranslations,
+  //         and(
+  //           eq(categoryTranslations.categoryId, categories.id),
+  //           eq(categoryTranslations.language, "en")
+  //         )
+  //       )
+  //       .where(and(...whereConditions))
+  //       .orderBy(desc(products.createdAt))
+  //       .limit(limit)
+  //       .offset(offset);
+
+  //     const productIds = productsResult.map((p) => p.id);
+  //     if (productIds.length === 0) {
+  //       return { items: [], total };
+  //     }
+
+  //     // --- 3️⃣ Get all translations for these products
+  //     const translationsResult = await db
+  //       .select({
+  //         productId: productTranslations.productId,
+  //         language: productTranslations.language,
+  //         name: productTranslations.name,
+  //         description: productTranslations.description,
+  //         highlights: productTranslations.highlights,
+  //       })
+  //       .from(productTranslations)
+  //       .where(inArray(productTranslations.productId, productIds));
+
+  //     // --- 4️⃣ Group translations by product + language
+  //     const translationsByProduct: Record<string, Record<string, any>> = {};
+
+  //     translationsResult.forEach((t) => {
+  //       if (!translationsByProduct[t.productId]) {
+  //         translationsByProduct[t.productId] = {};
+  //       }
+  //       translationsByProduct[t.productId][t.language] = {
+  //         name: t.name,
+  //         description: t.description,
+  //         highlights: t.highlights,
+  //       };
+  //     });
+
+  //     // --- 5️⃣ Combine products with translations
+  //     const items = productsResult.map((product) => ({
+  //       ...product,
+  //       name: translationsByProduct[product.id]?.en?.name || "Untitled Product",
+  //       translations: translationsByProduct[product.id] || {},
+  //     }));
+
+  //     return { items, total };
+  //   } catch (error) {
+  //     console.error("❌ Error fetching all products with translations:", error);
+  //     return { items: [], total: 0 };
+  //   }
+  // }
+
+  async getProductsBySearchQuery(
+    query: string,
+    filters: any = {},
+    category?: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<{ items: any[]; total: number }> {
+    try {
+      const pattern = `%${query}%`;
+      const conditions: any[] = [
+        or(
+          ilike(productTranslations.name, pattern),
+          ilike(productTranslations.description, pattern),
+          ilike(products.brand, pattern)
+        ),
+        eq(products.isActive, true),
+        isNull(products.deletedAt),
+      ];
+      if (category) {
+        conditions.push(eq(categoryTranslations.name, category));
+      }
+
+      if (filters.minPrice)
+        conditions.push(gte(products.price, filters.minPrice));
+      if (filters.maxPrice)
+        conditions.push(lte(products.price, filters.maxPrice));
+      if (filters.availability === "in_stock")
+        conditions.push(gt(products.stock, 0));
+      if (filters.rating) conditions.push(gte(products.rating, filters.rating));
+
+      // 🧠 Sort logic
+      let orderBy: any = desc(products.createdAt);
+      if (filters.sort === "price_low_to_high") orderBy = asc(products.price);
+      if (filters.sort === "price_high_to_low") orderBy = desc(products.price);
+      if (filters.sort === "newest") orderBy = desc(products.createdAt);
+
+      const queryBuilder = db
+        .select({
+          id: products.id,
+          name: productTranslations.name,
+          description: productTranslations.description,
+          brand: products.brand,
+          price: products.price,
+          stock: products.stock,
+          images: products.images,
+          categoryId: products.categoryId,
+        })
+        .from(products)
+        .leftJoin(categories, eq(categories.id, products.categoryId))
+        .leftJoin(
+          categoryTranslations,
+          and(
+            eq(categoryTranslations.categoryId, categories.id),
+            eq(categoryTranslations.language, "en")
+          )
+        )
+        .leftJoin(
+          productTranslations,
+          and(
+            eq(productTranslations.productId, products.id),
+            eq(productTranslations.language, "en")
+          )
+        )
+        .where(and(...conditions))
+        .orderBy(orderBy)
+        .limit(limit)
+        .offset(offset);
+
+      const productsResult = await queryBuilder;
+      const total = productsResult.length;
+
+      return { items: productsResult, total };
+    } catch (error) {
+      console.error("❌ Error in getProductsBySearchQuery:", error);
+      return { items: [], total: 0 };
+    }
+  }
+
+  async getAllProductsWithTranslations(
+    limit: number = 15,
+    offset: number = 0,
+    category?: string,
+    filters: {
+      minPrice?: number | null;
+      maxPrice?: number | null;
+      rating?: number | null;
+      availability?: string | null;
+      sort?: string | null;
+      brand?: string | null;
+    } = {}
+  ): Promise<{ items: any[]; total: number }> {
+    try {
+      if (!db) throw new Error("Database not available");
+
+      const whereConditions = [
+        eq(products.isActive, true),
+        isNull(products.deletedAt),
+      ];
+
+      // --- Category filter
+      if (category) {
+        whereConditions.push(eq(categoryTranslations.name, category));
+      }
+
+      // --- Price range
+      if (filters.minPrice) {
+        whereConditions.push(sql`${products.price} >= ${filters.minPrice}`);
+      }
+      if (filters.maxPrice) {
+        whereConditions.push(sql`${products.price} <= ${filters.maxPrice}`);
+      }
+
+      // --- Rating
+      if (filters.rating) {
+        whereConditions.push(sql`${products.rating} >= ${filters.rating}`);
+      }
+
+      // --- Availability
+      if (filters.availability === "inStock") {
+        whereConditions.push(sql`${products.stock} > 0`);
+      } else if (filters.availability === "outOfStock") {
+        whereConditions.push(sql`${products.stock} = 0`);
+      }
+
+      // --- Brand filter
+      if (filters.brand) {
+        whereConditions.push(eq(products.brand, filters.brand));
+      }
+
+      // --- Total count for pagination
+      const [{ total }] = await db
+        .select({ total: sql<number>`COUNT(*) AS INTEGER` })
+        .from(products)
+        .leftJoin(categories, eq(categories.id, products.categoryId))
+        .leftJoin(
+          categoryTranslations,
+          and(
+            eq(categoryTranslations.categoryId, categories.id),
+            eq(categoryTranslations.language, "en")
+          )
+        )
+        .where(and(...whereConditions));
+
+      // --- Sorting
+      let orderByClause: any = desc(products.createdAt);
+      if (filters.sort === "price_asc")
+        orderByClause = sql`${products.price} ASC`;
+      if (filters.sort === "price_desc")
+        orderByClause = sql`${products.price} DESC`;
+      if (filters.sort === "rating_desc")
+        orderByClause = sql`${products.rating} DESC`;
+      if (filters.sort === "newest") orderByClause = desc(products.createdAt);
+
+      // --- Fetch products
+      const productsResult = await db
+        .select({
+          id: products.id,
+          vendorId: products.vendorId,
+          categoryId: products.categoryId,
+          categoryName: categoryTranslations.name,
+          slug: products.slug,
+          sku: products.sku,
+          price: products.price,
+          originalPrice: products.originalPrice,
+          stock: products.stock,
+          brand: products.brand,
+          images: products.images,
+          isFeatured: products.isFeatured,
+          rating: products.rating,
+          reviewCount: products.reviewCount,
+          createdAt: products.createdAt,
+          vendorName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+        })
+        .from(products)
+        .leftJoin(users, eq(users.id, products.vendorId))
+        .leftJoin(categories, eq(categories.id, products.categoryId))
+        .leftJoin(
+          categoryTranslations,
+          and(
+            eq(categoryTranslations.categoryId, categories.id),
+            eq(categoryTranslations.language, "en")
+          )
+        )
+        .where(and(...whereConditions))
+        .orderBy(orderByClause)
+        .limit(limit)
+        .offset(offset);
+
+      const productIds = productsResult.map((p) => p.id);
+      if (productIds.length === 0) return { items: [], total };
+
+      // --- Translations
+      const translationsResult = await db
+        .select({
+          productId: productTranslations.productId,
+          language: productTranslations.language,
+          name: productTranslations.name,
+          description: productTranslations.description,
+          highlights: productTranslations.highlights,
+        })
+        .from(productTranslations)
+        .where(inArray(productTranslations.productId, productIds));
+
+      const translationsByProduct: Record<string, Record<string, any>> = {};
+      translationsResult.forEach((t) => {
+        if (!translationsByProduct[t.productId])
+          translationsByProduct[t.productId] = {};
+        translationsByProduct[t.productId][t.language] = {
+          name: t.name,
+          description: t.description,
+          highlights: t.highlights,
+        };
+      });
+
+      const items = productsResult.map((product) => ({
+        ...product,
+        name: translationsByProduct[product.id]?.en?.name || "Untitled Product",
+        translations: translationsByProduct[product.id] || {},
+      }));
+
+      return { items, total };
+    } catch (error) {
+      console.error("❌ Error fetching products with translations:", error);
+      return { items: [], total: 0 };
     }
   }
 
@@ -1111,8 +1689,8 @@ export class DatabaseStorage implements IStorage {
       // Transform images array to extract URLs for edit mode
       const imageUrls = Array.isArray(product.images)
         ? product.images.map((img: any) =>
-            typeof img === "string" ? img : img?.url || img
-          )
+          typeof img === "string" ? img : img?.url || img
+        )
         : [];
 
       return {
@@ -1129,8 +1707,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-
-   async getProductsByVendor(
+  async getProductsByVendor(
     vendorId: string,
     language: string = "en"
   ): Promise<any[]> {
@@ -1181,49 +1758,51 @@ export class DatabaseStorage implements IStorage {
       const productIds = productsResult.map((p) => p.id);
 
       // 2) Fetch all translations, FAQs and specifications in bulk (single DB calls)
-      const [translationsResult, faqsResult, specificationsResult] = await Promise.all([
-        db
-          .select({
-            productId: productTranslations.productId,
-            language: productTranslations.language,
-            name: productTranslations.name,
-            description: productTranslations.description,
-            highlights: productTranslations.highlights,
-          })
-          .from(productTranslations)
-          .where(inArray(productTranslations.productId, productIds)),
-        db
-          .select({
-            productId: productFaqs.productId,
-            question: productFaqs.question,
-            answer: productFaqs.answer,
-            sortOrder: productFaqs.sortOrder,
-          })
-          .from(productFaqs)
-          .where(
-            and(
-              inArray(productFaqs.productId, productIds),
-              eq(productFaqs.isActive, true)
+      const [translationsResult, faqsResult, specificationsResult] =
+        await Promise.all([
+          db
+            .select({
+              productId: productTranslations.productId,
+              language: productTranslations.language,
+              name: productTranslations.name,
+              description: productTranslations.description,
+              highlights: productTranslations.highlights,
+            })
+            .from(productTranslations)
+            .where(inArray(productTranslations.productId, productIds)),
+          db
+            .select({
+              productId: productFaqs.productId,
+              question: productFaqs.question,
+              answer: productFaqs.answer,
+              sortOrder: productFaqs.sortOrder,
+            })
+            .from(productFaqs)
+            .where(
+              and(
+                inArray(productFaqs.productId, productIds),
+                eq(productFaqs.isActive, true)
+              )
             )
-          )
-          .orderBy(productFaqs.sortOrder),
-        db
-          .select({
-            productId: productSpecifications.productId,
-            featureName: productSpecifications.featureName,
-            featureValue: productSpecifications.featureValue,
-            featureType: productSpecifications.featureType,
-            sortOrder: productSpecifications.sortOrder,
-          })
-          .from(productSpecifications)
-          .where(inArray(productSpecifications.productId, productIds))
-          .orderBy(productSpecifications.sortOrder),
-      ]);
+            .orderBy(productFaqs.sortOrder),
+          db
+            .select({
+              productId: productSpecifications.productId,
+              featureName: productSpecifications.featureName,
+              featureValue: productSpecifications.featureValue,
+              featureType: productSpecifications.featureType,
+              sortOrder: productSpecifications.sortOrder,
+            })
+            .from(productSpecifications)
+            .where(inArray(productSpecifications.productId, productIds))
+            .orderBy(productSpecifications.sortOrder),
+        ]);
 
       // 3) Group translations/faqs/specs by product id
       const translationsByProduct: { [productId: string]: any } = {};
       translationsResult.forEach((tr) => {
-        translationsByProduct[tr.productId] = translationsByProduct[tr.productId] || {};
+        translationsByProduct[tr.productId] =
+          translationsByProduct[tr.productId] || {};
         translationsByProduct[tr.productId][tr.language] = {
           name: tr.name,
           description: tr.description,
@@ -1234,12 +1813,16 @@ export class DatabaseStorage implements IStorage {
       const faqsByProduct: { [productId: string]: any[] } = {};
       faqsResult.forEach((f) => {
         faqsByProduct[f.productId] = faqsByProduct[f.productId] || [];
-        faqsByProduct[f.productId].push({ question: f.question, answer: f.answer });
+        faqsByProduct[f.productId].push({
+          question: f.question,
+          answer: f.answer,
+        });
       });
 
       const specificationsByProduct: { [productId: string]: any[] } = {};
       specificationsResult.forEach((s) => {
-        specificationsByProduct[s.productId] = specificationsByProduct[s.productId] || [];
+        specificationsByProduct[s.productId] =
+          specificationsByProduct[s.productId] || [];
         specificationsByProduct[s.productId].push({
           featureName: s.featureName,
           featureValue: s.featureValue,
@@ -1250,18 +1833,26 @@ export class DatabaseStorage implements IStorage {
       // 4) Compose final results without per-item DB calls
       const productsWithDetails = productsResult.map((product) => {
         const imageUrls = Array.isArray(product.images)
-          ? product.images.map((img: any) => (typeof img === "string" ? img : img?.url || img))
+          ? product.images.map((img: any) =>
+            typeof img === "string" ? img : img?.url || img
+          )
           : [];
 
         const translations = translationsByProduct[product.id] || {};
-        const name = translations[language]?.name || translations["en"]?.name || "Untitled Product";
+        const name =
+          translations[language]?.name ||
+          translations["en"]?.name ||
+          "Untitled Product";
 
         return {
           ...product,
           images: imageUrls,
           status: product.isActive ? "active" : "inactive",
           price: product.price?.toString?.() ?? String(product.price ?? "0"),
-          originalPrice: product.originalPrice?.toString?.() ?? (product.originalPrice ?? null),
+          originalPrice:
+            product.originalPrice?.toString?.() ??
+            product.originalPrice ??
+            null,
           rating: parseFloat(product.rating || "0"),
           faqs: faqsByProduct[product.id] || [],
           specifications: specificationsByProduct[product.id] || [],
@@ -1276,9 +1867,6 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
-
-
-
 
   // async getProductsByVendor(
   //   vendorId: string,
@@ -1425,6 +2013,123 @@ export class DatabaseStorage implements IStorage {
   //   }
   // }
 
+  // Shipments Api's
+
+  async getShipments() {
+    return await db
+      .select({
+        id: shipments.id,
+        orderId: shipments.orderId,
+        customerName: shipments.customerName,
+        customerPhone: shipments.customerPhone,
+        origin: shipments.origin,
+        destination: shipments.destination,
+        carrierId: shipments.carrierId,
+        carrierName: carriers.name,
+        status: shipments.status,
+        trackingNumber: shipments.trackingNumber,
+        estimatedDelivery: shipments.estimatedDelivery,
+        actualDelivery: shipments.actualDelivery,
+        weight: shipments.weight,
+        value: shipments.value,
+        shippingCost: shipments.shippingCost,
+        notes: shipments.notes,
+        createdAt: shipments.createdAt,
+        updatedAt: shipments.updatedAt,
+      })
+      .from(shipments)
+      .leftJoin(carriers, eq(shipments.carrierId, carriers.id))
+      .orderBy(desc(shipments.createdAt));
+  }
+
+  // ✅ Create new shipment
+  async createShipment(data: any) {
+    const newShipment = {
+      orderId: data.orderId,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      origin: data.origin,
+      destination: data.destination,
+      carrierId: data.carrierId || null,
+      status: data.status || "en_preparation",
+      trackingNumber: data.trackingNumber,
+      estimatedDelivery: data.estimatedDelivery
+        ? new Date(data.estimatedDelivery)
+        : null,
+      actualDelivery: data.actualDelivery
+        ? new Date(data.actualDelivery)
+        : null,
+      weight: data.weight,
+      value: data.value,
+      shippingCost: data.shippingCost,
+      notes: data.notes,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const result = await db.insert(shipments).values(newShipment).returning();
+    return result[0];
+  }
+
+  // ✅ Update shipment
+  async updateShipment(id: string, data: any) {
+    const [updated] = await db
+      .update(shipments)
+      .set({
+        ...data,
+        estimatedDelivery: data.estimatedDelivery
+          ? new Date(data.estimatedDelivery)
+          : null,
+        actualDelivery: data.actualDelivery
+          ? new Date(data.actualDelivery)
+          : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(shipments.id, id))
+      .returning();
+    return updated;
+  }
+
+  // ✅ Delete shipment
+  async deleteShipment(id: string) {
+    await db.delete(shipments).where(eq(shipments.id, id));
+    return { success: true };
+  }
+
+  // ✅ Fetch analytics properly (by status, carrier, and origin)
+  async getShipmentsAnalytics() {
+    const statusCounts = await db
+      .select({
+        status: shipments.status,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(shipments)
+      .groupBy(shipments.status);
+
+    const carrierCounts = await db
+      .select({
+        carrierId: shipments.carrierId,
+        carrierName: carriers.name,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(shipments)
+      .leftJoin(carriers, eq(shipments.carrierId, carriers.id))
+      .groupBy(shipments.carrierId, carriers.name);
+
+    const zoneCounts = await db
+      .select({
+        zone: shipments.origin,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(shipments)
+      .groupBy(shipments.origin);
+
+    return {
+      statusCounts,
+      carrierCounts,
+      zoneCounts,
+    };
+  }
+
   async getVendors(): Promise<any[]> {
     try {
       const result = await db
@@ -1569,17 +2274,61 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // async getClientDashboardStats(userId: string): Promise<any> {
+  //   try {
+  //     // In a real implementation, these would be actual database queries
+  //     return {
+  //       totalOrders: 12,
+  //       wishlistItems: 24,
+  //       reviewsWritten: 8,
+  //       totalSpent: "1,234",
+  //     };
+  //   } catch (error) {
+  //     console.error("Error fetching client dashboard stats:", error);
+  //     return {
+  //       totalOrders: 0,
+  //       wishlistItems: 0,
+  //       reviewsWritten: 0,
+  //       totalSpent: "0",
+  //     };
+  //   }
+  // }
+
   async getClientDashboardStats(userId: string): Promise<any> {
     try {
-      // In a real implementation, these would be actual database queries
+      if (!db) throw new Error("Database not available");
+
+      const [{ totalOrders }] = await db
+        .select({ totalOrders: sql<number>`COUNT(*)` })
+        .from(orders)
+        .where(eq(orders.userId, userId));
+
+      const [{ wishlistItems }] = await db
+        .select({ wishlistItems: sql<number>`COUNT(*)` })
+        .from(wishlists)
+        .where(eq(wishlists.userId, userId));
+
+      // const [{ reviewsWritten }] =
+      //   await db
+      //     .select({ reviewsWritten: sql<number>`COUNT(*)` })
+      //     .from(reviews)
+      //     .where(eq(reviews.userId, userId));
+
+      const [{ totalSpent }] = await db
+        .select({
+          totalSpent: sql<string>`COALESCE(SUM(${orders.totalAmount}), '0')`,
+        })
+        .from(orders)
+        .where(eq(orders.userId, userId));
+
       return {
-        totalOrders: 12,
-        wishlistItems: 24,
-        reviewsWritten: 8,
-        totalSpent: "1,234",
+        totalOrders: Number(totalOrders) || 0,
+        wishlistItems: Number(wishlistItems) || 0,
+        // reviewsWritten: Number(reviewsWritten) || 0,
+        totalSpent: Number(totalSpent).toLocaleString(),
       };
     } catch (error) {
-      console.error("Error fetching client dashboard stats:", error);
+      console.error("❌ Error fetching client dashboard stats:", error);
       return {
         totalOrders: 0,
         wishlistItems: 0,
@@ -1591,28 +2340,171 @@ export class DatabaseStorage implements IStorage {
 
   async getSellerDashboardStats(userId: string): Promise<any> {
     try {
-      // In a real implementation, these would be actual database queries
-      const productCount = await db
-        .select({ count: sql<number>`COUNT(*)` })
+      if (!db) throw new Error("Database not available");
+
+      // Products total (active)
+      const productsCountRow = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
         .from(products)
         .where(and(eq(products.vendorId, userId), eq(products.isActive, true)));
+      const totalProducts = Number(productsCountRow[0]?.count ?? 0);
+
+      // Promotions total
+      // const promotionsCountRow = await db
+      //   .select({ count: sql<number>`COUNT(*)::int` })
+      //   .from(promotions)
+      //   .where(eq(promotions.vendorId, userId));
+      // const totalPromotions = Number(promotionsCountRow[0]?.count ?? 0);
+      const totalPromotions = 10; // Mocked for now
+
+
+      // Revenue: sum of orderItems.totalPrice for completed orders for this vendor
+      const currentRevenueRow = await db
+        .select({ total: sql<number>`COALESCE(SUM(${orderItems.totalPrice}),0)` })
+        .from(orderItems)
+        .innerJoin(products, eq(orderItems.productId, products.id))
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(
+          and(
+            eq(products.vendorId, userId),
+            eq(orders.status, "delivered"),
+            gte(orders.createdAt, currentMonthStart),
+            lte(orders.createdAt, currentMonthEnd)
+          )
+        );
+      const previousRevenueRow = await db
+        .select({ total: sql<number>`COALESCE(SUM(${orderItems.totalPrice}),0)` })
+        .from(orderItems)
+        .innerJoin(products, eq(orderItems.productId, products.id))
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(
+          and(
+            eq(products.vendorId, userId),
+            eq(orders.status, "delivered"),
+            gte(orders.createdAt, previousMonthStart),
+            lte(orders.createdAt, previousMonthEnd)
+          )
+        );
+
+      const currentRevenue = Number(currentRevenueRow[0]?.total ?? 0);
+      const previousRevenue = Number(previousRevenueRow[0]?.total ?? 0);
+
+      // Orders count (distinct orders) current / previous
+      const currentOrdersRow = await db
+        .select({ count: sql<number>`COUNT(DISTINCT ${orders.id})::int` })
+        .from(orderItems)
+        .innerJoin(products, eq(orderItems.productId, products.id))
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(
+          and(
+            eq(products.vendorId, userId),
+            eq(orders.status, "delivered"),
+            gte(orders.createdAt, currentMonthStart),
+            lte(orders.createdAt, currentMonthEnd)
+          )
+        );
+
+      const previousOrdersRow = await db
+        .select({ count: sql<number>`COUNT(DISTINCT ${orders.id})::int` })
+        .from(orderItems)
+        .innerJoin(products, eq(orderItems.productId, products.id))
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(
+          and(
+            eq(products.vendorId, userId),
+            eq(orders.status, "delivered"),
+            gte(orders.createdAt, previousMonthStart),
+            lte(orders.createdAt, previousMonthEnd)
+          )
+        );
+
+      const currentOrdersCount = Number(currentOrdersRow[0]?.count ?? 0);
+      const previousOrdersCount = Number(previousOrdersRow[0]?.count ?? 0);
+
+      // Products created in current / previous month (growth)
+      const currentProductsRow = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(products)
+        .where(
+          and(
+            eq(products.vendorId, userId),
+            gte(products.createdAt, currentMonthStart),
+            lte(products.createdAt, currentMonthEnd)
+          )
+        );
+
+      const previousProductsRow = await db
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(products)
+        .where(
+          and(
+            eq(products.vendorId, userId),
+            gte(products.createdAt, previousMonthStart),
+            lte(products.createdAt, previousMonthEnd)
+          )
+        );
+
+      const currentProductsCount = Number(currentProductsRow[0]?.count ?? 0);
+      const previousProductsCount = Number(previousProductsRow[0]?.count ?? 0);
+
+      // Promotions created in current / previous month (growth)
+      // const currentPromotionsRow = await db
+      //   .select({ count: sql<number>`COUNT(*)::int` })
+      //   .from(promotions)
+      //   .where(
+      //     and(
+      //       eq(promotions.vendorId, userId),
+      //       gte(promotions.createdAt, currentMonthStart),
+      //       lte(promotions.createdAt, currentMonthEnd)
+      //     )
+      //   );
+
+      // const previousPromotionsRow = await db
+      //   .select({ count: sql<number>`COUNT(*)::int` })
+      //   .from(promotions)
+      //   .where(
+      //     and(
+      //       eq(promotions.vendorId, userId),
+      //       gte(promotions.createdAt, previousMonthStart),
+      //       lte(promotions.createdAt, previousMonthEnd)
+      //     )
+      //   );
+
+      // const currentPromotionsCount = Number(currentPromotionsRow[0]?.count ?? 0);
+      // const previousPromotionsCount = Number(previousPromotionsRow[0]?.count ?? 0);
+      const currentPromotionsCount = 5; // Mocked for now
+      const previousPromotionsCount = 6; // Mocked for now
+      // percentage helpers (reuse existing getPercentageChange)
+      const revenueChange = getPercentageChange(currentRevenue, previousRevenue);
+      const ordersChange = getPercentageChange(currentOrdersCount, previousOrdersCount);
+      const productsChange = getPercentageChange(currentProductsCount, previousProductsCount);
+      const promotionsChange = getPercentageChange(currentPromotionsCount, previousPromotionsCount);
 
       return {
-        totalProducts: productCount[0]?.count || 156,
-        totalSales: "12,456",
-        customers: 89,
-        monthlyGrowth: 23,
+        turnover: Math.round(currentRevenue),
+        turnoverChange: Math.round(revenueChange),
+        orders: currentOrdersCount,
+        ordersChange: Math.round(ordersChange),
+        products: totalProducts,
+        productsChange: Math.round(productsChange),
+        promotions: totalPromotions,
+        promotionsChange: Math.round(promotionsChange),
       };
     } catch (error) {
       console.error("Error fetching seller dashboard stats:", error);
       return {
-        totalProducts: 0,
-        totalSales: "0",
-        customers: 0,
-        monthlyGrowth: 0,
+        turnover: 0,
+        turnoverChange: 0,
+        orders: 0,
+        ordersChange: 0,
+        products: 0,
+        productsChange: 0,
+        promotions: 0,
+        promotionsChange: 0,
       };
     }
   }
+
 
   async getAdminDashboardStats(): Promise<any> {
     try {
@@ -2067,19 +2959,25 @@ export class DatabaseStorage implements IStorage {
       .select({
         totalRevenue: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`,
         totalCommission: sql<number>`COALESCE(SUM(${transactions.amount} * 0.1), 0)`,
-        totalPending: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.status} = 'pending' THEN ${transactions.amount} ELSE 0 END), 0)`,
       })
       .from(transactions);
+    const [pendingStats] = await db
+      .select({
+        totalPending: sql<number>`COALESCE(SUM(${withdrawalRequests.amount}), 0)`,
+      })
+      .from(withdrawalRequests)
+      .where(inArray(withdrawalRequests.status, ["pending", "approved"]));
 
     const [activeShops] = await db
       .select({
         activeShopsCount: sql<number>`COUNT(*)`,
       })
       .from(stores)
-      .where(eq(stores.status, "active"));
+      .where(eq(stores.status, "approved"));
 
     return {
       ...stats,
+      totalPending: pendingStats.totalPending || 0,
       activeShopsCount: activeShops.activeShopsCount || 0,
     };
   }
@@ -2139,6 +3037,54 @@ export class DatabaseStorage implements IStorage {
       .where(eq(transactions.sellerId, shop[0].ownerId));
 
     return { success: true };
+  }
+
+  // Withdrawal API
+  async getSellerWithdrawals(sellerId: string) {
+    const requests = await db
+      .select()
+      .from(withdrawalRequests)
+      .where(eq(withdrawalRequests.sellerId, sellerId))
+      .orderBy(withdrawalRequests.createdAt);
+    return requests;
+  }
+
+  // --- Seller: Create a withdrawal request
+  async createWithdrawalRequest(sellerId: string, data: any) {
+    const result = await db
+      .insert(withdrawalRequests)
+      .values({
+        sellerId,
+        amount: data.amount,
+        bankAccountInfo: data.bankAccountInfo,
+        status: "pending",
+      })
+      .returning();
+    return result[0];
+  }
+
+  // --- Admin: Approve or reject
+  async updateWithdrawalStatus(
+    id: string,
+    status: string,
+    adminNotes?: string
+  ) {
+    const result = await db
+      .update(withdrawalRequests)
+      .set({
+        status,
+        adminNotes: adminNotes || null,
+        processedAt: new Date(),
+      })
+      .where(eq(withdrawalRequests.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // --- Admin: Get all withdrawals
+  async getAllWithdrawals() {
+    const results = await db.select().from(withdrawalRequests);
+    return results;
   }
 
   // Seller API
@@ -2535,12 +3481,12 @@ export class DatabaseStorage implements IStorage {
     const normalizedCities =
       typeof data.cities === "string"
         ? data.cities
-            .split(/[\s,;]+/)
-            .map((c: string) => c.trim())
-            .filter((c: string) => c.length > 0)
+          .split(/[\s,;]+/)
+          .map((c: string) => c.trim())
+          .filter((c: string) => c.length > 0)
         : Array.isArray(data.cities)
-        ? data.cities.map((c: string) => c.trim())
-        : [];
+          ? data.cities.map((c: string) => c.trim())
+          : [];
     const zone = {
       id: crypto.randomUUID(),
       shopId,
@@ -2750,7 +3696,8 @@ export class DatabaseStorage implements IStorage {
           fullname: orders.customerName,
           email: orders.customerEmail,
           phone: orders.customerPhone,
-          status: orders.status,
+          // status: orders.status,
+          status: users.status,
           totalSpent: sql<number>`COALESCE(SUM(${orders.totalAmount}), 0)`,
           joinDate: sql<string>`MIN(${orders.createdAt})`,
           averageBasket: sql<number>`COALESCE(AVG(${orders.totalAmount}), 0)`,
@@ -2759,6 +3706,7 @@ export class DatabaseStorage implements IStorage {
         .from(orders)
         .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
         .innerJoin(products, eq(products.id, orderItems.productId))
+        .innerJoin(users, eq(users.id, orders.userId))
         .where(
           and(
             isNull(products.deletedAt),
@@ -2772,12 +3720,67 @@ export class DatabaseStorage implements IStorage {
           orders.customerName,
           orders.customerEmail,
           orders.customerPhone,
-          orders.status
+          users.status
         );
 
       return result;
     }, []);
   }
+
+
+  async getSellerTrend(vendorId: string) {
+    try {
+      // Aggregate total sales and orders per month
+      const results = await db
+        .select({
+          month: sql<string>`TO_CHAR(${orders.createdAt}, 'Mon')`, // PostgreSQL style month abbreviation
+          monthIndex: sql<number>`EXTRACT(MONTH FROM ${orders.createdAt})`,
+          sales: sql<number>`SUM(${orderItems.totalPrice})`,
+          ordersCount: sql<number>`COUNT(DISTINCT ${orders.id})`,
+        })
+        .from(orders)
+        .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+        .innerJoin(products, eq(orderItems.productId, products.id))
+        .where(and(eq(products.vendorId, vendorId), isNull(orders.deletedAt)))
+        .groupBy(sql`EXTRACT(MONTH FROM ${orders.createdAt})`, sql`TO_CHAR(${orders.createdAt}, 'Mon')`)
+        .orderBy(sql`EXTRACT(MONTH FROM ${orders.createdAt})`);
+
+      // Normalize data: ensure all months appear even if zero need fix
+      const months = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      ];
+
+      // const trend = months.map((m, i) => {
+      //   const match = results.find((r) => r.monthIndex === i + 1);
+      //   return {
+      //     month: m,
+      //     sales: match?.sales || 0,
+      //     orders: match?.ordersCount || 0,
+      //   };
+      // });
+      const trend = months.map((m, i) => {
+        // Find matching month result using 1-based index
+        const match = results.find((r) => {
+          // Convert month abbreviation to index (1-12)
+          const monthIndex = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(r.month) + 1;
+          return monthIndex === i + 1;
+        });
+
+        return {
+          month: m,
+          sales: Number(match?.sales || 0),
+          orders: Number(match?.ordersCount || 0),
+        };
+      });
+      return trend;
+    } catch {
+      return [];
+    }
+
+  }
+
 
   async getOrdersByUserId(userId: string, lang = "en") {
     try {
@@ -3016,7 +4019,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getSellerOrders(vendorId: string): Promise<any[]> {
+  async getSellerOrders(vendorId: string, lang: string = "en"): Promise<any[]> {
     try {
       const rows = await db
         .select({
@@ -3043,18 +4046,30 @@ export class DatabaseStorage implements IStorage {
           productName: productTranslations.name,
           productSku: products.sku,
           shippingOption: orders.shippingOption,
+          storeName: stores.storeName,
+          categoryName: categoryTranslations.name,
         })
         .from(orderItems)
         .innerJoin(products, eq(orderItems.productId, products.id))
         .innerJoin(orders, eq(orderItems.orderId, orders.id))
         .innerJoin(users, eq(orders.userId, users.id))
+        .innerJoin(stores, eq(products.vendorId, stores.ownerId))
         .leftJoin(
           productTranslations,
           and(
             eq(productTranslations.productId, products.id),
-            eq(productTranslations.language, "en")
+            eq(productTranslations.language, lang)
           )
         )
+        .innerJoin(categories, eq(products.categoryId, categories.id))
+        .leftJoin(
+          categoryTranslations,
+          and(
+            eq(categoryTranslations.categoryId, categories.id),
+            eq(categoryTranslations.language, lang)
+          )
+        )
+
         .where(and(eq(products.vendorId, vendorId), isNull(orders.deletedAt)))
         .orderBy(desc(orders.createdAt));
 
@@ -3075,7 +4090,7 @@ export class DatabaseStorage implements IStorage {
             updatedAt: row.updatedAt,
             shippingAddress: {
               ...(typeof row.shippingAddress === "object" &&
-              row.shippingAddress !== null
+                row.shippingAddress !== null
                 ? row.shippingAddress
                 : { shippingAddress: row.shippingAddress }),
               email: row.email,
@@ -3096,6 +4111,8 @@ export class DatabaseStorage implements IStorage {
           product: {
             name: row.productName,
             sku: row.productSku,
+            storeName: row.storeName,
+            categoryName: row.categoryName,
           },
         });
       }
@@ -3168,7 +4185,7 @@ export class DatabaseStorage implements IStorage {
             createdAt: row.createdAt,
             shippingAddress: {
               ...(typeof row.shippingAddress === "object" &&
-              row.shippingAddress !== null
+                row.shippingAddress !== null
                 ? row.shippingAddress
                 : { shippingAddress: row.shippingAddress }),
               email: row.email,
@@ -3665,16 +4682,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createStore(storeData: InsertStore): Promise<Store> {
+  async createStore(storeData: any): Promise<Store> {
     try {
       const codeStore = `STORE-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)
         .toUpperCase()}`;
-      const [store] = await db
-        .insert(stores)
-        .values({ ...storeData, codeStore })
-        .returning();
+      const businessAddress = {
+        street: storeData.ownerAddressStreet,
+        city: storeData.ownerAddressCity,
+        zipCode: storeData.ownerAddressZipCode,
+        country: storeData.ownerAddressCountry,
+      };
+      const storeRes = {
+        codeStore,
+        storeName: storeData.name,
+        storeDescription: storeData.description,
+        ownerId: storeData.ownerId,
+        businessPhone: storeData.ownerPhone,
+        businessWebsite: storeData.website,
+        taxId: storeData.taxId,
+        businessAddress,
+      };
+      const [store] = await db.insert(stores).values(storeRes).returning();
       return store;
     } catch (error) {
       console.error("Error creating store:", error);
@@ -4233,6 +5263,20 @@ export class DatabaseStorage implements IStorage {
       return true;
     }, false);
   }
+  async getStoreInfoByUserId(userId: string): Promise<Store | undefined> {
+    try {
+      const [store] = await db
+        .select({
+          storeName: stores.storeName,
+          storeDescription: stores.storeDescription,
+        })
+        .from(stores)
+        .where(eq(stores.ownerId, userId));
+      return store || undefined;
+    } catch (error) {
+      console.error("Error fetching store by user ID:", error);
+      return undefined;
+    }
+  }
 }
-
 export const storage = new DatabaseStorage();

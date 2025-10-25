@@ -15,19 +15,19 @@ const RealEstateAd = () => {
           alt="Apartment building"
           className="w-full h-32 object-cover rounded-md"
         />
-        <div className="space-y-2">
-          <h4 className="font-medium text-sm">Appartement de Luxe</h4>
-          <p className="text-xs text-gray-600">
-            3 chambres • 2 salles de bain • 120m²
-          </p>
-          <div className="flex items-baseline gap-2">
-            <span className="font-bold text-sm text-gray-900">259 000€</span>
-            <span className="text-xs text-gray-500">Saint-Germain</span>
-          </div>
-          <button className="w-full bg-cebleu-purple hover:bg-cebleu-purple-dark text-white text-sm font-medium py-1.5 px-3 rounded-md transition-colors">
-            Voir le bien
-          </button>
-        </div>
+       <div className="space-y-2">
+  <h4 className="font-medium text-sm">{t("property.title.luxuryApartment")}</h4>
+  <p className="text-xs text-gray-600">
+    {t("property.details", { bedrooms: 3, bathrooms: 2, size: "120m²" })}
+  </p>
+  <div className="flex items-baseline gap-2">
+    <span className="font-bold text-sm text-gray-900">259 000€</span>
+    <span className="text-xs text-gray-500">{t("property.location.saintGermain")}</span>
+  </div>
+  <button className="w-full bg-cebleu-purple hover:bg-cebleu-purple-dark text-white text-sm font-medium py-1.5 px-3 rounded-md transition-colors">
+    {t("property.button.viewDetails")}
+  </button>
+</div>
       </div>
     </div>
   );

@@ -482,80 +482,84 @@ export function AdvancedAddProductForm({
   };
 
   const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = Array.from(event.target.files || []);
-    const totalImages = uploadedImages.length + imageUrls.length;
+  event: React.ChangeEvent<HTMLInputElement>
+) => {
+  const files = Array.from(event.target.files || []);
+  const totalImages = uploadedImages.length + imageUrls.length;
 
-    if (totalImages + files.length > 8) {
-      alert("Maximum 8 images allowed");
-      return;
-    }
+  if (totalImages + files.length > 8) {
+    alert(t("addProduct.alert.maxImages"));
+    return;
+  }
 
-    // Show loading state
-    const loadingToast = toast({
-      title: "Uploading images...",
-      description: "Please wait while we upload your images.",
+  // Show loading state
+  const loadingToast = toast({
+    title: t("addProduct.toast.uploading.title"),
+    description: t("addProduct.toast.uploading.description"),
+  });
+
+  try {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("images", file);
     });
 
-    try {
-      const formData = new FormData();
-      files.forEach((file) => {
-        formData.append("images", file);
-      });
+    const response = await fetch("/api/upload/images", {
+      method: "POST",
+      body: formData,
+    });
 
-      const response = await fetch("/api/upload/images", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to upload images");
-      }
-
-      const result = await response.json();
-
-      // Update state with uploaded file paths
-      const newImagePaths = result.files.map((file: any) => file.path);
-      setUploadedImages((prev) => [...prev, ...newImagePaths]);
-
-      // Update form with new image structure
-      const currentImages = form.getValues("images") || [];
-      const newImages = [
-        ...currentImages,
-        ...newImagePaths.map((path: string) => ({
-          url: path,
-          uploadMethod: "upload" as const,
-        })),
-      ];
-      form.setValue("images", newImages);
-
-      loadingToast.dismiss();
-      toast({
-        title: "Success",
-        description: `${files.length} image(s) uploaded successfully.`,
-      });
-    } catch (error) {
-      loadingToast.dismiss();
-      console.error("Error uploading images:", error);
-      toast({
-        title: "Error",
-        description: "Failed to upload images. Please try again.",
-        variant: "destructive",
-      });
+    if (!response.ok) {
+      throw new Error(t("product.images.uploadError"));
     }
 
-    // Reset file input
-    event.target.value = "";
-  };
+    const result = await response.json();
+
+    // Update state with uploaded file paths
+    const newImagePaths = result.files.map((file: any) => file.path);
+    setUploadedImages((prev) => [...prev, ...newImagePaths]);
+
+    // Update form with new image structure
+    const currentImages = form.getValues("images") || [];
+    const newImages = [
+      ...currentImages,
+      ...newImagePaths.map((path: string) => ({
+        url: path,
+        uploadMethod: "upload" as const,
+      })),
+    ];
+    form.setValue("images", newImages);
+
+    loadingToast.dismiss();
+    toast({
+      title: t("addProduct.toast.success.titles"),
+      description: t("addProduct.toast.success.description", {
+        count: files.length,
+      }),
+    });
+  } catch (error) {
+    loadingToast.dismiss();
+    console.error("Error uploading images:", error);
+    toast({
+      title: t("addProduct.toast.error.titles"),
+      description: t("addProduct.toast.error.descriptions"),
+      variant: "destructive",
+    });
+  }
+
+  // Reset file input
+  event.target.value = "";
+};
+
 
   const addImageUrl = (url: string) => {
     const totalImages = uploadedImages.length + imageUrls.length;
 
     if (totalImages >= 8) {
-      alert("Maximum 8 images allowed");
-      return;
-    }
+  alert(t("addProduct.alert.maxImages"));
+  return;
+}
+
 
     if (url && !imageUrls.includes(url)) {
       const newUrls = [...imageUrls, url];
@@ -1763,16 +1767,7 @@ export function AdvancedAddProductForm({
                 </Button>
 
                 <div className="flex items-center gap-4">
-                  {/* <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSubmit(form.getValues(), true)}
-                    disabled={isLoading}
-                    data-testid="button-save-draft"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save as draft
-                  </Button> */}
+
 
                   <Button
                     type="submit"

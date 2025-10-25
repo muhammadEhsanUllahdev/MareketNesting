@@ -296,7 +296,7 @@ const BestSellers = () => {
         )}
         {product.badges && product.badges.includes("New") && (
           <div className="absolute bottom-0 left-0 bg-cebleu-blue px-1 py-0.5 text-[8px] font-bold text-white rounded-tr-md">
-            NEW
+            {t("badge.new")}
           </div>
         )}
       </div>
@@ -332,7 +332,7 @@ const BestSellers = () => {
         <h2 className="text-lg font-bold text-cebleu-dark flex items-center">
           <Crown className="w-5 h-5 mr-2 text-cebleu-gold-rich" />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-cebleu-purple-800 to-cebleu-purple">
-            Meilleur vente du mois
+            {t("dashboard.bestSaleOfMonth")}
           </span>
         </h2>
         <Button
